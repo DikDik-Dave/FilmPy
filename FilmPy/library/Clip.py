@@ -9,50 +9,56 @@ class Clip:
     Base class for all clips.
     """
 
-    def __init__(self, frame_width, frame_height, start_time, end_time, video_fps):
+    def __init__(self,
+                 clip_fps=None,
+                 end_time=None,
+                 frame_width=None,
+                 frame_height=None,
+                 start_time=0,
+                 video_fps=None,
+                 include_audio=None):
         """
         Initialize this Clip
 
+        :param frame_width:
+        :param frame_height:
         :param start_time:
         :param end_time:
-        :param video_fps: Video's frames per second
+        :param video_fps:
         """
-        # Primary Audio Stream Attributes
-        self._audio_stream = None
 
-        # Primary Audio Data
-        self._audio_data = None
+        # Audio Specific Attributes
+        self._audio_info = {}   # Audio metadata
+        self._audio_data = None # Primary Audio Data
 
-        # Set the amount of frames per second
-        self.video_fps = video_fps
+        # Clip specific attributes
+        self._clip_end = end_time       # End time in seconds
+        self._clip_start = start_time   # Start time in seconds
+        self._clip_frames = []          # Frames for the whole clip
+        self._clip_fps = clip_fps       # Frames per second for the clip
 
-        # When to start the clip
-        self._start_time = start_time
-
-        # When to end the clip
-        self._end_time = end_time
-
+        # Video specific attributes
+        self._video_info = {'height': frame_height, 'width': frame_width, 'fps': video_fps} # Video metadata
+        #TODO: Remove references to _video_frame_* and use _video_info
         self._video_frame_height = frame_height
-
-        # Width of a Single Frame
         self._video_frame_width = frame_width
 
-        # The path to the video file in question
+        # File specific attributes
         self._video_file_path = None
 
-        # Primary Video Stream information
-        self._video_stream = None
 
-        # RGB Frame Data
-        self._video_frames = []
+        # Should the audio data be written for this clip
+        self._include_audio = include_audio
 
-
-    def _get_audio_data(self,
-        file_name,
-        fps = 44100,
-        number_bytes = 2,
-        number_channels = 2
-    ):
+    ####################
+    # Expected Methods #
+    ####################
+    def get_audio_data(self,
+                       file_name,
+                       fps = 44100,
+                       number_bytes = 2,
+                       number_channels = 2
+                       ):
         """
         Gets the audio data associated to this clip
         :return:
@@ -65,30 +71,63 @@ class Clip:
 
         :return: array of RGB frame data
         """
-        raise NotImplementedError(f"{classname(self)}.get_frames has not been implemented")
-
+        raise NotImplementedError(f"{classname(self)}.get_video_frames has not been implemented")
 
     ####################
     # Property Methods #
     ####################
     @property
+    def has_audio(self):
+        """
+        Checks if the clip in question has audio data
+
+        :return: True if the clip has audio data, False otherwise
+        """
+        return bool(self._audio_info)
+
+    @property
+    def start_time(self):
+        """
+        Retrieves the start time of the clip
+        :return: start time of the clip in seconds
+        """
+        return self._clip_start
+
+    @property
     def video_frame_height(self):
-        return self._video_frame_height
+        if 'height' not in self._video_info:
+            raise TypeError(f'{classname(self)}.video_frame_height is None.')
+        return self._video_info['height']
+
 
     @property
     def video_frame_width(self):
         return self._video_frame_width
+
+    @property
+    def write_audio(self):
+        if self._include_audio is None:
+            raise TypeError(f'{classname(self)}.write_audio is None.')
+        return self._include_audio
 
     def set_end_time(self, end_time):
         """
         Set the end time for the clip
 
         :param end_time: End time of the clip in seconds
-        :return:
         """
-        self._end_time = end_time
+        self._clip_end = end_time
 
+    @property
+    def video_file_path(self):
+        """
+        Path to the video file
 
+        :returns
+            None, If there is no video file associated to the clip
+            str, Video file path
+        """
+        return self._video_file_path
 
     ##################
     # Public Methods #
@@ -98,14 +137,7 @@ class Clip:
         Set the start time for the clip
         :param start_time:
         """
-        self._start_time = start_time
-
-    def start_time(self):
-        """
-        Retrieves the start time of the clip
-        :return: start time of the clip in seconds
-        """
-        return self._start_time
+        self._clip_start = start_time
 
     def write_video_file(self,
                          file_path,
@@ -145,24 +177,24 @@ class Clip:
 
         # Write the video to the file
         command = [FFMPEG_BINARY,
-                   '-y',                                    # Overwrite output file if it exists
-                   '-f', 'rawvideo',                        #
-                   '-vcodec', 'rawvideo',                   #
-                   '-s', self._video_stream['resolution'],  # size of one frame
-                   '-pix_fmt', 'rgb24',                     # pixel format
-                   '-r', '%d' % self.video_fps,             # frames per second
-                   '-i', '-',                               # the input comes from a pipe
+                   '-y',  # Overwrite output file if it exists
+                   '-f', 'rawvideo',  #
+                   '-vcodec', 'rawvideo',  #
+                   '-s', self._video_info['resolution'],  # size of one frame
+                   '-pix_fmt', 'rgb24',  # pixel format
+                   '-r', '%d' % self.video_fps,  # frames per second
+                   '-i', '-',  # the input comes from a pipe
                    '-an']                                   # tells FFMPEG not to expect any audio
 
         # If we have an audio stream and we are to write audio
-        if self._audio_stream and write_audio:
+        if self._audio_info and write_audio:
             # TODO: Pull this data from audio_stream or somewhere...
             # Audio Info
             fps = 44100
             number_channels = 2
             number_bytes = 2
             temp_audio_file_name = f"{file_name}_wvf_snd.tmp.{audio_extension}"
-            audio_data = self._get_audio_data(self._video_file_path, fps, number_bytes, number_channels)
+            audio_data = self.get_audio_data(self._video_file_path, fps, number_bytes, number_channels)
 
             # FFMPEG Command to write audio to a file
             ffmpeg_command = [
@@ -191,7 +223,7 @@ class Clip:
         command.extend([
             '-vcodec', file_video_codec,
             '-preset', 'medium',
-            '-pix_fmt', self._video_stream['pix_fmt'],
+            '-pix_fmt', self._video_info['pix_fmt'],
             file_path])
 
         # Write all the video frame data to the PIPE's standard input
