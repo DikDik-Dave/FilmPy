@@ -38,10 +38,10 @@ class Clip:
         self._clip_fps = clip_fps       # Frames per second for the clip
 
         # Video specific attributes
-        self._video_info = {'height': frame_height, 'width': frame_width, 'fps': video_fps} # Video metadata
-        #TODO: Remove references to _video_frame_* and use _video_info
-        self._video_frame_height = frame_height
-        self._video_frame_width = frame_width
+        self._video_info = {'height': frame_height,
+                            'width': frame_width,
+                            'fps': video_fps,
+                            'resolution': f"{frame_width}x{frame_height}"} # Video metadata
 
         # File specific attributes
         self._video_file_path = None
@@ -102,7 +102,9 @@ class Clip:
 
     @property
     def video_frame_width(self):
-        return self._video_frame_width
+        if 'width' not in self._video_info:
+            return TypeError(f'{classname(self)}.video_frame_width is None')
+        return self._video_info['width']
 
     @property
     def write_audio(self):
@@ -123,11 +125,20 @@ class Clip:
         """
         Path to the video file
 
-        :returns
-            None, If there is no video file associated to the clip
-            str, Video file path
+        :returns:
+            None - No video file is associated with this clip
+            str - Path to the video file
         """
         return self._video_file_path
+
+    @property
+    def video_fps(self):
+        """
+        Frames per second of the associated video
+        :returns:
+            int - Frames per second for the video
+        """
+        return self._video_info['fps']
 
     ##################
     # Public Methods #
