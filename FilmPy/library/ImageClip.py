@@ -1,5 +1,6 @@
 from pydoc import classname
-
+from PIL import Image
+from PIL.ExifTags import TAGS
 import numpy
 
 from FilmPy.library import Clip
@@ -35,13 +36,40 @@ class ImageClip(Clip):
                    f"Either provide {classname(self)}.image_path or {classname(self)}.frame_data, not both.")
             raise ValueError(msg)
 
-        # We were given the image frame
-        if video_frames and (image_path is None):
-            self._video_frames = [video_frames]
+        # Set local variables
+        frame_width = None
+        frame_height = None
 
         # We were given a path to an image file
-        elif image_path and (video_frames is None):
-            with open(image_path, 'rb') as image_file:
-                self._video_frames = [numpy.asarray(image_file.read())]
+        if image_path and (video_frames is None):
+            # Open the image file with PIL
+            img = Image.open(image_path)
+            frame_width = img.size[0]
+            frame_height = img.size[1]
+            video_frames = [numpy.array(img)]
 
-        super().__init__(start_time=start_time, end_time=end_time, video_fps=video_fps, include_audio=False)
+            # TODO: Test & store exif data
+
+            # exifdata = img.getexif()
+            # print(exifdata)
+            # # iterating over all EXIF data fields
+            # for tag_id in exifdata:
+            #     # get the tag name, instead of human unreadable tag id
+            #     tag = TAGS.get(tag_id, tag_id)
+            #     data = exifdata.get(tag_id).decode("utf-16")
+            #     print(f"{tag:25}: {data}")
+
+        super().__init__(start_time=start_time,
+                         end_time=end_time,
+                         video_fps=video_fps,
+                         include_audio=False,
+                         frame_width=frame_width,
+                         frame_height=frame_height,
+                         video_frames=video_frames)
+
+
+    ##################
+    # Public Methods #
+    ##################
+    def get_video_frames(self):
+        return self._video_frames
