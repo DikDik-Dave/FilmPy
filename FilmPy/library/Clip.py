@@ -18,6 +18,7 @@ class Clip:
                  frame_height=None,
                  start_time=0,
                  video_fps=None,
+                 video_frames=None,
                  include_audio=None):
         """
         Initialize this Clip
@@ -47,6 +48,7 @@ class Clip:
 
         # File specific attributes
         self._video_file_path = None
+        self._video_frames = video_frames
 
 
         # Should the audio data be written for this clip
@@ -150,6 +152,17 @@ class Clip:
         """
         return self._video_info['fps']
 
+    @video_fps.setter
+    def video_fps(self, fps):
+        """
+        Set video_fps
+        :param fps:
+        :return:
+        """
+        if not isinstance(fps, (int,float)):
+            raise TypeError(f"{type(self).__name__}.video_fps must be an integer or a float")
+        self._video_info['fps'] = fps
+
     @property
     def video_resolution(self) -> str:
         if 'resolution' not in self._video_info:
@@ -214,7 +227,7 @@ class Clip:
         frame = self.get_video_frame(frame_index=frame_index, frame_time=frame_time)
         pixel_format = 'rgb24'
         command = [FFMPEG_BINARY,
-                   "-y"
+                   "-y",
                    "-s", self.video_resolution,
                    '-f','rawvideo',
                    '-pix_fmt', pixel_format,
@@ -226,9 +239,9 @@ class Clip:
         process = subprocess.Popen(command, stdout=DEVNULL, stdin=PIPE)
         _, process_error = process.communicate(frame.tobytes())
         if process.returncode:
-            raise IOError(process_error.decode())
+            raise IOError(process_error)
 
-        # Clean up
+        # Delete the process
         del process
 
         # File was successfully created
