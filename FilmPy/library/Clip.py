@@ -1,8 +1,10 @@
 from pydoc import classname
 import subprocess
 import os
-from FilmPy.library.constants import AUDIO_CODECS, FFMPEG_BINARY, VIDEO_CODECS
+from subprocess import DEVNULL, PIPE
 
+from FilmPy.library.constants import AUDIO_CODECS, FFMPEG_BINARY, VIDEO_CODECS
+import numpy as np
 
 class Clip:
     """
@@ -63,7 +65,7 @@ class Clip:
         Gets the audio data associated to this clip
         :return:
         """
-        raise NotImplementedError(f"{classname(self)}._get_audio_data() has not been implemented. Bad Developer.")
+        raise NotImplementedError(f"{type(self).__name__}._get_audio_data() has not been implemented. Bad Developer.")
 
     def get_video_frames(self):
         """
@@ -71,7 +73,7 @@ class Clip:
 
         :return: array of RGB frame data
         """
-        raise NotImplementedError(f"{classname(self)}.get_video_frames has not been implemented")
+        raise NotImplementedError(f"{type(self).__name__}.get_video_frames has not been implemented")
 
     ####################
     # Property Methods #
@@ -93,23 +95,31 @@ class Clip:
         """
         return self._clip_start
 
+    @start_time.setter
+    def start_time(self, start_time):
+        """
+        Set the start time for the clip
+        :param start_time:
+        """
+        self._clip_start = start_time
+
     @property
     def video_frame_height(self):
         if 'height' not in self._video_info:
-            raise TypeError(f'{classname(self)}.video_frame_height is None.')
+            raise TypeError(f'{type(self).__name__}.video_frame_height is None.')
         return self._video_info['height']
 
 
     @property
     def video_frame_width(self):
         if 'width' not in self._video_info:
-            return TypeError(f'{classname(self)}.video_frame_width is None')
+            return TypeError(f'{type(self).__name__}.video_frame_width is None')
         return self._video_info['width']
 
     @property
     def write_audio(self):
         if self._include_audio is None:
-            raise TypeError(f'{classname(self)}.write_audio is None.')
+            raise TypeError(f'{type(self).__name__}.write_audio is None.')
         return self._include_audio
 
     def set_end_time(self, end_time):
@@ -140,15 +150,89 @@ class Clip:
         """
         return self._video_info['fps']
 
+    @property
+    def video_resolution(self) -> str:
+        if 'resolution' not in self._video_info:
+            raise TypeError(f'{type(self).__name__}.video_resolution is None.')
+        return self._video_info['resolution']
+
     ##################
     # Public Methods #
     ##################
-    def set_start_time(self, start_time):
+    def get_video_frame(self,
+                  frame_index:int=None,
+                  frame_time:int=None,
+                  loop_frames=False):
         """
-        Set the start time for the clip
-        :param start_time:
+        Get a specific frame from this clip
+
+        :param frame_index: Index of the frame we want to retrieve
+        :param frame_time: time in seconds of the frame to retrieve
+        :param loop_frames: Should we throw an error or loop through the frames when given an out of range index
+        :return:
         """
-        self._clip_start = start_time
+        # Get the video frames
+        frames = self.get_video_frames()
+
+        # Ensure we have valid input
+        if (frame_index is None) and (frame_time is None):
+            msg = f"Either frame_index or frame_time must be provided to {type(self).__name__}.write_image()"
+            raise ValueError(msg)
+        elif frame_index and frame_time:
+            msg = f"Both frame_index and frame_time cannot be simultaneously be specified. "
+            raise ValueError(msg)
+
+        # Get the frame index
+        if frame_time:
+            frame_index = int(self.video_fps * frame_time)
+
+        # Do we have a negative integer, if so count from the back of the array
+        if (frame_index < 0) and (abs(frame_index) <= len(frames)):
+            frame_index = len(frames) + frame_index
+
+        # If requested, loop over the frames for an out of range value
+        if loop_frames:
+            frame_index = frame_index % len(frames)
+
+        # Return the requested frame
+        return frames[frame_index]
+
+
+    def write_image(self, file_path, frame_index:int=None, frame_time:int=None) -> bool:
+        """
+        Write a single frame out as an image file
+        :return: True, if successful
+        """
+        # Ensure we have valid input
+        if (frame_index is None) and (frame_time is None):
+            msg = f"Either frame_index or frame_time must be provided to {type(self).__name__}.write_image()"
+            raise ValueError(msg)
+        elif frame_index and frame_time:
+            msg = f"Both frame_index and frame_time cannot be simultaneously be specified. "
+            raise ValueError(msg)
+
+        frame = self.get_video_frame(frame_index=frame_index, frame_time=frame_time)
+        pixel_format = 'rgb24'
+        command = [FFMPEG_BINARY,
+                   "-y"
+                   "-s", self.video_resolution,
+                   '-f','rawvideo',
+                   '-pix_fmt', pixel_format,
+                   '-i', '-',
+                   file_path
+                   ]
+
+        # Call ffmpeg, and pip the data to the subprocess
+        process = subprocess.Popen(command, stdout=DEVNULL, stdin=PIPE)
+        _, process_error = process.communicate(frame.tobytes())
+        if process.returncode:
+            raise IOError(process_error.decode())
+
+        # Clean up
+        del process
+
+        # File was successfully created
+        return True
 
     def write_video_file(self,
                          file_path,
