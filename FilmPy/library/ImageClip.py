@@ -59,7 +59,8 @@ class ImageClip(Clip):
             #     data = exifdata.get(tag_id).decode("utf-16")
             #     print(f"{tag:25}: {data}")
 
-        super().__init__(start_time=start_time,
+        super().__init__(frames=video_frames,       # Frames for this clip
+                         start_time=start_time,
                          end_time=end_time,
                          video_fps=video_fps,
                          include_audio=False,
@@ -71,5 +72,16 @@ class ImageClip(Clip):
     ##################
     # Public Methods #
     ##################
+    def get_clip_frames(self):
+        # Return the already created frames
+        if self._clip_frames:
+            return self._clip_frames
+
+        # No frames yet exist, copy the video data
+        # TODO: respect clip start, end, etc
+        self._clip_frames = self.get_video_frames()
+
+        return self._clip_frames
+
     def get_video_frames(self):
         return self._video_frames

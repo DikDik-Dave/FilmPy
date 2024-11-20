@@ -1,8 +1,7 @@
-from pydoc import classname
 import subprocess
 import os
 from subprocess import DEVNULL, PIPE
-
+from PIL import Image
 from FilmPy.library.constants import AUDIO_CODECS, FFMPEG_BINARY, VIDEO_CODECS
 import numpy as np
 
@@ -12,6 +11,7 @@ class Clip:
     """
 
     def __init__(self,
+                 frames=None,
                  clip_fps=None,
                  end_time=None,
                  frame_width=None,
@@ -35,6 +35,7 @@ class Clip:
         self._audio_data = None # Primary Audio Data
 
         # Clip specific attributes
+        self._clip_frames = frames      # The frames of the clip itself
         self._clip_end = end_time       # End time in seconds
         self._clip_start = start_time   # Start time in seconds
         self._clip_frames = []          # Frames for the whole clip
@@ -45,10 +46,11 @@ class Clip:
                             'width': frame_width,
                             'fps': video_fps,
                             'resolution': f"{frame_width}x{frame_height}"} # Video metadata
+        self._video_frames = video_frames
 
         # File specific attributes
         self._video_file_path = None
-        self._video_frames = video_frames
+
 
 
         # Should the audio data be written for this clip
@@ -69,9 +71,19 @@ class Clip:
         """
         raise NotImplementedError(f"{type(self).__name__}._get_audio_data() has not been implemented. Bad Developer.")
 
+    def get_clip_frames(self):
+        """
+        Get the video frame data for this clip.
+        This is either a condensed or looped and editable version of the frame data
+
+        :return: An array of NPArray objects (RGB data)
+        """
+        raise NotImplementedError(f"{type(self).__name__}.get_video_frames has not been implemented")
+
     def get_video_frames(self):
         """
         Get the video frame data associated to this clip
+        Note, This IS NOT the same as the frames that comprise the clip, and once set is not (meant to be) mutable
 
         :return: array of RGB frame data
         """
@@ -80,6 +92,15 @@ class Clip:
     ####################
     # Property Methods #
     ####################
+    # @property
+    # def clip_frames(self):
+    #     """
+    #     The frames that comprise this clip
+    #     :return: [NPArray objects]
+    #     """
+    #     return self.get_clip_frames()
+
+
     @property
     def has_audio(self):
         """
@@ -169,6 +190,18 @@ class Clip:
             raise TypeError(f'{type(self).__name__}.video_resolution is None.')
         return self._video_info['resolution']
 
+    ###################
+    # Private Methods #
+    ###################
+    @staticmethod
+    def _to_radians(angle) -> float:
+        """
+
+        :param angle: Angle in degrees
+        :return:
+        """
+        return angle * (np.pi / 180)
+
     ##################
     # Public Methods #
     ##################
@@ -185,7 +218,7 @@ class Clip:
         :return:
         """
         # Get the video frames
-        frames = self.get_video_frames()
+        frames = self.get_clip_frames()
 
         # Ensure we have valid input
         if (frame_index is None) and (frame_time is None):
@@ -210,6 +243,26 @@ class Clip:
         # Return the requested frame
         return frames[frame_index]
 
+    def rotate(self, angle) -> object:
+        """
+        Rotates the frames in video around the pivot point
+        :param angle: Angle in degrees counter-clockwise
+        :return self: (to enable method chaining)
+        """
+
+        #TODO: Add clip_start and clip_end as parameters to this method
+
+        # Rotate each frame in the clip
+        rotated_frames = []
+        for frame in self.get_clip_frames():
+            image = Image.fromarray(frame).rotate(angle)
+            rotated_frames.append(np.array(image))
+
+        # Replace the clip frames with the now rotated frames
+        self.set_frames(rotated_frames)
+
+        # Return this object to enable method chaining
+        return self
 
     def write_image(self, file_path, frame_index:int=None, frame_time:int=None) -> bool:
         """
@@ -220,11 +273,12 @@ class Clip:
         if (frame_index is None) and (frame_time is None):
             msg = f"Either frame_index or frame_time must be provided to {type(self).__name__}.write_image()"
             raise ValueError(msg)
-        elif frame_index and frame_time:
+        if frame_index and frame_time:
             msg = f"Both frame_index and frame_time cannot be simultaneously be specified. "
             raise ValueError(msg)
 
         frame = self.get_video_frame(frame_index=frame_index, frame_time=frame_time)
+        print(frame.shape)
         pixel_format = 'rgb24'
         command = [FFMPEG_BINARY,
                    "-y",
@@ -235,6 +289,7 @@ class Clip:
                    file_path
                    ]
 
+        print(command)
         # Call ffmpeg, and pip the data to the subprocess
         process = subprocess.Popen(command, stdout=DEVNULL, stdin=PIPE)
         _, process_error = process.communicate(frame.tobytes())
@@ -246,6 +301,18 @@ class Clip:
 
         # File was successfully created
         return True
+
+    def set_frames(self, value):
+        """
+        Set the new clip frames
+        """
+        if not isinstance(value, list):
+            raise ValueError(f"{type(self).__name__}.clip_frames must be a list of numpy.array objects")
+
+        # TODO: Add check that all elements are np.array
+        # if not all(isinstance(e, np.array) for e in value)):
+        #     raise()
+        self._clip_frames = value
 
     def write_video_file(self,
                          file_path,
