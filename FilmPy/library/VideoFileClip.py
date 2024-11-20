@@ -61,19 +61,15 @@ class VideoFileClip(Clip):
                 pass
 
         self._media = json.loads(ffprobe.execute())
-        self._video_stream = self._media['streams'][0]
+        self._video_info = self._media['streams'][0]
         self._audio_stream = self._media['streams'][1]
         self._video_file_path = video_file_path
 
         # Set video stream attributes
-        self._video_stream['duration'] = float(self._video_stream['duration'])
-        self._video_stream['height'] = int(self._video_stream['height'])
-        self._video_stream['resolution'] = f"{self._video_stream['width']}x{self._video_stream['height']}"
-        self._video_stream['width'] = int(self._video_stream['width'])
-
-        # Set the video frame attributes
-        self._video_frame_height = self._video_stream['height']
-        self._video_frame_width = self._video_stream['width']
+        self._video_info['duration'] = float(self._video_info['duration'])
+        self._video_info['height'] = int(self._video_info['height'])
+        self._video_info['resolution'] = f"{self._video_info['width']}x{self._video_info['height']}"
+        self._video_info['width'] = int(self._video_info['width'])
 
         # If no end_time was specified set it to be the video's duration
         if not end_time:
@@ -137,11 +133,11 @@ class VideoFileClip(Clip):
         completed_process = subprocess.run(command, capture_output=True)
 
         # Get all frames
-        frame_length = self._video_stream['width'] * self._video_stream['height'] * 3
+        frame_length = self._video_info['width'] * self._video_info['height'] * 3
         for i in range(0, len(completed_process.stdout), frame_length):
             frame = completed_process.stdout[i:i + frame_length]
-            frame = numpy.fromstring(frame, dtype='uint8').reshape((self._video_stream['height'],
-                                                                    self._video_stream['width'],
+            frame = numpy.fromstring(frame, dtype='uint8').reshape((self._video_info['height'],
+                                                                    self._video_info['width'],
                                                                     3))
 
             # Store the frame in our frames list
