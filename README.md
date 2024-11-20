@@ -7,7 +7,8 @@ By using FilmPy you will be able to
 * Add static image overlays to a video clip [NOT YET]
 * Compile various clips into a video and save it 
 * Create composite video clips [NOT YET]
-* Rotate a video [NOT YET]
+* Rotate Videos and Clip Sequences
+* Flip a video (left to right or top to bottom) [NOT YET]
 
 ## How To Use This Library
 ### Import the editor
