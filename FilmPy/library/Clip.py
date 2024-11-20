@@ -1,8 +1,10 @@
 import subprocess
 import os
 from subprocess import DEVNULL, PIPE
+
+import PIL.Image
 from PIL import Image
-from FilmPy.library.constants import AUDIO_CODECS, FFMPEG_BINARY, VIDEO_CODECS
+from FilmPy.library.constants import AUDIO_CODECS, FFMPEG_BINARY, VIDEO_CODECS, Transpose
 import numpy as np
 
 class Clip:
@@ -14,8 +16,8 @@ class Clip:
                  frames=None,
                  clip_fps=None,
                  end_time=None,
-                 frame_width=None,
-                 frame_height=None,
+                 width=None,
+                 height=None,
                  start_time=0,
                  video_fps=None,
                  video_frames=None,
@@ -23,8 +25,8 @@ class Clip:
         """
         Initialize this Clip
 
-        :param frame_width:
-        :param frame_height:
+        :param width:
+        :param height:
         :param start_time:
         :param end_time:
         :param video_fps:
@@ -35,18 +37,17 @@ class Clip:
         self._audio_data = None # Primary Audio Data
 
         # Clip specific attributes
-        self._clip_frames = frames      # The frames of the clip itself
-        self._clip_end = end_time       # End time in seconds
-        self._clip_start = start_time   # Start time in seconds
-        self._clip_frames = []          # Frames for the whole clip
-        self._clip_fps = clip_fps       # Frames per second for the clip
+        self._clip_frames = [] if not frames else frames        # The frames of the clip itself
+        self._clip_end = end_time                               # End time in seconds
+        self._clip_start = start_time                           # Start time in seconds
+        self._clip_fps = clip_fps                               # Frames per second for the clip
 
         # Video specific attributes
-        self._video_info = {'height': frame_height,
-                            'width': frame_width,
+        self._video_info = {'height': height,
+                            'width': width,
                             'fps': video_fps,
-                            'resolution': f"{frame_width}x{frame_height}"} # Video metadata
-        self._video_frames = video_frames
+                            'resolution': f"{width}x{height}"}  # Video metadata
+        self._video_frames = [] if not video_frames else video_frames       # Frames that make up the video
 
         # File specific attributes
         self._video_file_path = None
@@ -70,15 +71,6 @@ class Clip:
         :return:
         """
         raise NotImplementedError(f"{type(self).__name__}._get_audio_data() has not been implemented. Bad Developer.")
-
-    def get_clip_frames(self):
-        """
-        Get the video frame data for this clip.
-        This is either a condensed or looped and editable version of the frame data
-
-        :return: An array of NPArray objects (RGB data)
-        """
-        raise NotImplementedError(f"{type(self).__name__}.get_video_frames has not been implemented")
 
     def get_video_frames(self):
         """
@@ -205,6 +197,51 @@ class Clip:
     ##################
     # Public Methods #
     ##################
+    def get_frames(self):
+        """
+        Get the video frames for this clip
+        :return:
+        """
+        # Return the already created frames
+        if self._clip_frames:
+            return self._clip_frames
+
+        # No frames yet exist, copy the video data
+        # TODO: respect clip start, end, etc
+        self._clip_frames = self.get_video_frames()
+
+        return self._clip_frames
+
+    def flip_left_right(self):
+        """
+        Flips the clip frames left to right
+        :return: self, to enable method chaining
+        """
+        print(PIL.Image.Transpose.FLIP_LEFT_RIGHT)
+        flipped_frames = []
+        for frame in self.get_frames():
+            image = Image.fromarray(frame).transpose(PIL.Image.Transpose.FLIP_LEFT_RIGHT)
+            flipped_frames.append(np.array(image))
+
+        # Replace the clip frames with the now rotated frames
+        self.set_frames(flipped_frames)
+
+        # Return this object to enable method chaining
+        return self
+
+    def flip_top_bottom(self):
+        flipped_frames = []
+        for frame in self.get_frames():
+            image = Image.fromarray(frame).transpose(PIL.Image.Transpose.FLIP_TOP_BOTTOM)
+            flipped_frames.append(np.array(image))
+
+        # Replace the clip frames with the now rotated frames
+        self.set_frames(flipped_frames)
+
+        # Return this object to enable method chaining
+        return self
+
+
     def get_video_frame(self,
                   frame_index:int=None,
                   frame_time:int=None,
@@ -218,7 +255,7 @@ class Clip:
         :return:
         """
         # Get the video frames
-        frames = self.get_clip_frames()
+        frames = self.get_frames()
 
         # Ensure we have valid input
         if (frame_index is None) and (frame_time is None):
@@ -254,7 +291,7 @@ class Clip:
 
         # Rotate each frame in the clip
         rotated_frames = []
-        for frame in self.get_clip_frames():
+        for frame in self.get_frames():
             image = Image.fromarray(frame).rotate(angle)
             rotated_frames.append(np.array(image))
 
@@ -289,7 +326,7 @@ class Clip:
                    file_path
                    ]
 
-        print(command)
+
         # Call ffmpeg, and pip the data to the subprocess
         process = subprocess.Popen(command, stdout=DEVNULL, stdin=PIPE)
         _, process_error = process.communicate(frame.tobytes())
@@ -403,7 +440,7 @@ class Clip:
 
         # Write all the video frame data to the PIPE's standard input
         process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stdin=subprocess.PIPE,  bufsize=10 ** 8)
-        for frame in self.get_video_frames():
+        for frame in self.get_frames():
             process.stdin.write(frame.tobytes())
         process.stdin.close()
         process.wait()
