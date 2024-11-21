@@ -4,7 +4,7 @@ from subprocess import DEVNULL, PIPE
 
 import PIL.Image
 from PIL import Image
-from FilmPy.library.constants import AUDIO_CODECS, FFMPEG_BINARY, VIDEO_CODECS, Transpose
+from .constants import AUDIO_CODECS, FFMPEG_BINARY, VIDEO_CODECS, Transpose
 import numpy as np
 
 class Clip:
@@ -13,8 +13,10 @@ class Clip:
     """
 
     def __init__(self,
+                 audio_frames=None,
+                 fps=None,
+                 file_path=None,
                  frames=None,
-                 clip_fps=None,
                  end_time=None,
                  width=None,
                  height=None,
@@ -33,14 +35,15 @@ class Clip:
         """
 
         # Audio Specific Attributes
-        self._audio_info = {}   # Audio metadata
-        self._audio_data = None # Primary Audio Data
+        self._audio_info = {}         # Audio metadata
+        self._audio_frames = audio_frames # Primary Audio Frame Data
 
         # Clip specific attributes
-        self._clip_frames = [] if not frames else frames        # The frames of the clip itself
+        self._clip_audio = None
+        self._clip_video = [] if not frames else frames        # The frames of the clip itself
         self._clip_end = end_time                               # End time in seconds
         self._clip_start = start_time                           # Start time in seconds
-        self._clip_fps = clip_fps                               # Frames per second for the clip
+        self._clip_fps = fps                               # Frames per second for the clip
 
         # Video specific attributes
         self._video_info = {'height': height,
@@ -50,9 +53,7 @@ class Clip:
         self._video_frames = [] if not video_frames else video_frames       # Frames that make up the video
 
         # File specific attributes
-        self._video_file_path = None
-
-
+        self._file_path = file_path  # Path to whatever file is associated to this clip
 
         # Should the audio data be written for this clip
         self._include_audio = include_audio
@@ -60,18 +61,6 @@ class Clip:
     ####################
     # Expected Methods #
     ####################
-    def get_audio_data(self,
-                       file_name,
-                       fps = 44100,
-                       number_bytes = 2,
-                       number_channels = 2
-                       ):
-        """
-        Gets the audio data associated to this clip
-        :return:
-        """
-        raise NotImplementedError(f"{type(self).__name__}._get_audio_data() has not been implemented. Bad Developer.")
-
     def get_video_frames(self):
         """
         Get the video frame data associated to this clip
@@ -84,14 +73,39 @@ class Clip:
     ####################
     # Property Methods #
     ####################
-    # @property
-    # def clip_frames(self):
-    #     """
-    #     The frames that comprise this clip
-    #     :return: [NPArray objects]
-    #     """
-    #     return self.get_clip_frames()
+    @property
+    def audio_channels(self):
+        """
+        Number of audio channels for the audio
+        :return:
+        """
+        return self._audio_info['channels']
 
+    @audio_channels.setter
+    def audio_channels(self, value):
+        """
+        set the number of audio channels
+        :param value:
+        :return:
+        """
+        self._audio_info['channels'] = int(value)
+
+    @property
+    def end_time(self):
+        """
+        End time of the clip
+        :return : end time of the clip in seconds
+        """
+        return self._clip_end
+
+    @end_time.setter
+    def end_time(self, end_time):
+        """
+        Set the end time for the clip
+
+        :param end_time: End time of the clip in seconds
+        """
+        self._clip_end = end_time
 
     @property
     def has_audio(self):
@@ -119,14 +133,14 @@ class Clip:
         self._clip_start = start_time
 
     @property
-    def video_frame_height(self):
+    def video_height(self):
         if 'height' not in self._video_info:
             raise TypeError(f'{type(self).__name__}.video_frame_height is None.')
         return self._video_info['height']
 
 
     @property
-    def video_frame_width(self):
+    def video_width(self):
         if 'width' not in self._video_info:
             return TypeError(f'{type(self).__name__}.video_frame_width is None')
         return self._video_info['width']
@@ -137,16 +151,8 @@ class Clip:
             raise TypeError(f'{type(self).__name__}.write_audio is None.')
         return self._include_audio
 
-    def set_end_time(self, end_time):
-        """
-        Set the end time for the clip
-
-        :param end_time: End time of the clip in seconds
-        """
-        self._clip_end = end_time
-
     @property
-    def video_file_path(self):
+    def file_path(self):
         """
         Path to the video file
 
@@ -154,7 +160,7 @@ class Clip:
             None - No video file is associated with this clip
             str - Path to the video file
         """
-        return self._video_file_path
+        return self._file_path
 
     @property
     def video_fps(self):
@@ -197,27 +203,79 @@ class Clip:
     ##################
     # Public Methods #
     ##################
+    def get_audio_frames(self,
+                         file_name,
+                         fps=44100,
+                         number_bytes=2,
+                         number_channels=2):
+        """
+        Get audio data from an audio or video file
+        :param file_name: File containing audio to retrieve
+
+        :param fps:
+        :param number_bytes:
+        :param number_channels:
+        :return:
+        """
+        if self._audio_frames is not None:
+            return self._audio_frames
+
+        ffmpeg_command = [FFMPEG_BINARY,
+                          '-i', file_name, '-vn',
+                          '-loglevel', 'error',
+                          '-f', 's%dle' % (8 * number_bytes),
+                          '-acodec', 'pcm_s%dle' % (8 * number_bytes),
+                          '-ar', '%d' % fps,
+                          '-ac', '%d' % number_channels,
+                          '-'
+                          ]
+
+        completed_process = subprocess.run(ffmpeg_command, capture_output=True)
+
+        # return completed_process.stdout
+        dt = {1: 'int8', 2: 'int16', 4: 'int32'}[number_bytes]
+        self._audio_frames = np.fromstring(completed_process.stdout, dtype=dt).reshape(-1, number_channels)
+        return self._audio_frames
+
     def get_frames(self):
         """
         Get the video frames for this clip
         :return:
         """
         # Return the already created frames
-        if self._clip_frames:
-            return self._clip_frames
+        if self._clip_video:
+            return self._clip_video
 
         # No frames yet exist, copy the video data
         # TODO: respect clip start, end, etc
-        self._clip_frames = self.get_video_frames()
+        self._clip_video = self.get_video_frames()
 
-        return self._clip_frames
+        return self._clip_video
 
-    def flip_left_right(self):
+    def multiply_volume(self, multiplier:float,
+                            ) -> object:
+        """
+
+        :param multiplier: f
+        :return:
+        """
+        # Make sure the clip in question has audio
+        if not self.has_audio:
+            raise AttributeError(f"{type(self).__name__} does not have associated audio.")
+
+        # Set the new audio data
+        audio_frames = self.get_audio_frames(self.file_path, number_channels=self.audio_channels) * multiplier
+        self.set_audio_frames(np.rint(audio_frames).astype(np.int16))
+
+        # Return this object to enable method chaining
+        return self
+
+    def mirror_x(self):
         """
         Flips the clip frames left to right
-        :return: self, to enable method chaining
+
+        :return self: Enable method chaining
         """
-        print(PIL.Image.Transpose.FLIP_LEFT_RIGHT)
         flipped_frames = []
         for frame in self.get_frames():
             image = Image.fromarray(frame).transpose(PIL.Image.Transpose.FLIP_LEFT_RIGHT)
@@ -229,7 +287,12 @@ class Clip:
         # Return this object to enable method chaining
         return self
 
-    def flip_top_bottom(self):
+    def mirror_y(self):
+        """
+        Flip the clip frames top to bottom
+
+        :return self: Enable method chaining
+        """
         flipped_frames = []
         for frame in self.get_frames():
             image = Image.fromarray(frame).transpose(PIL.Image.Transpose.FLIP_TOP_BOTTOM)
@@ -315,7 +378,6 @@ class Clip:
             raise ValueError(msg)
 
         frame = self.get_video_frame(frame_index=frame_index, frame_time=frame_time)
-        print(frame.shape)
         pixel_format = 'rgb24'
         command = [FFMPEG_BINARY,
                    "-y",
@@ -339,6 +401,15 @@ class Clip:
         # File was successfully created
         return True
 
+    def set_audio_frames(self, value):
+        """
+        Set the audio data for this clip
+        :return:
+        """
+        if not isinstance(value, np.ndarray):
+            raise ValueError(f"{type(self).__name__}.audio_data must be an numpy array")
+        self._audio_frames = value
+
     def set_frames(self, value):
         """
         Set the new clip frames
@@ -346,10 +417,7 @@ class Clip:
         if not isinstance(value, list):
             raise ValueError(f"{type(self).__name__}.clip_frames must be a list of numpy.array objects")
 
-        # TODO: Add check that all elements are np.array
-        # if not all(isinstance(e, np.array) for e in value)):
-        #     raise()
-        self._clip_frames = value
+        self._clip_video = value
 
     def write_video_file(self,
                          file_path,
@@ -403,10 +471,10 @@ class Clip:
             # TODO: Pull this data from audio_stream or somewhere...
             # Audio Info
             fps = 44100
-            number_channels = 2
+            number_channels = self.audio_channels
             number_bytes = 2
             temp_audio_file_name = f"{file_name}_wvf_snd.tmp.{audio_extension}"
-            audio_data = self.get_audio_data(self._video_file_path, fps, number_bytes, number_channels)
+            audio_data = self.get_audio_frames(self._file_path, fps, number_bytes, number_channels)
 
             # FFMPEG Command to write audio to a file
             ffmpeg_command = [
