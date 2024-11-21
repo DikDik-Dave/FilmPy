@@ -4,10 +4,10 @@ Its goal is to enable fully video and audio editing.
 
 ## Main Functionality
 By using FilmPy you will be able to 
-|:-----------------------------------------------------|:-----------------------------------------------------|
-| Add static image overlays to a video clip [NOT YET]  | Concatenate clips                                    |
-| Create composite video clips [NOT YET]               | Rotate clips, images, and sequences of clips         |
-| Mirror horizontally clips, images, and clip sequences | Mirror vertically clips, images, and clip sequences |
+| :----------------------------------------------------- | :----------------------------------------------------- |
+| Add static image overlays to a video clip [NOT YET]    | Concatenate clips                                      |
+| Create composite video clips [NOT YET]                 | Rotate clips, images, and sequences of clips           |
+| Mirror horizontally clips, images, and clip sequences  | Mirror vertically clips, images, and clip sequences    |
 
 
 * Mirror horizontally clips, images, and clip sequences
