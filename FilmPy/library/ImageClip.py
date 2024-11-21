@@ -3,7 +3,7 @@ from PIL import Image
 from PIL.ExifTags import TAGS
 import numpy
 
-from FilmPy.library import Clip
+from .Clip import Clip
 class ImageClip(Clip):
     """
     An image clip is a clip comprised of a single image
@@ -59,29 +59,18 @@ class ImageClip(Clip):
             #     data = exifdata.get(tag_id).decode("utf-16")
             #     print(f"{tag:25}: {data}")
 
-        super().__init__(frames=video_frames,       # Frames for this clip
+        super().__init__(frames=video_frames,  # Frames for this clip
                          start_time=start_time,
                          end_time=end_time,
                          video_fps=video_fps,
                          include_audio=False,
-                         frame_width=frame_width,
-                         frame_height=frame_height,
+                         width=frame_width,
+                         height=frame_height,
                          video_frames=video_frames)
 
 
     ##################
     # Public Methods #
     ##################
-    def get_clip_frames(self):
-        # Return the already created frames
-        if self._clip_frames:
-            return self._clip_frames
-
-        # No frames yet exist, copy the video data
-        # TODO: respect clip start, end, etc
-        self._clip_frames = self.get_video_frames()
-
-        return self._clip_frames
-
     def get_video_frames(self):
         return self._video_frames
