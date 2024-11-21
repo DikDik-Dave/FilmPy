@@ -25,8 +25,14 @@ def _process_tag_video_clip(video_clip_element):
 
     video_clip = Editor.video_clip(video_path=video_clip_element.attrib['path'])
     for element in video_clip_element:
+        # Handle the mirror-x tag
+        if element.tag == 'mirror-x':
+            video_clip.mirror_x()
+        # Handle the mirror-y tag
+        if element.tag == 'mirror-y':
+            video_clip.mirror_y()
         # Handle the write-video tag
-        if (element.tag == 'write-video') and ('path' not in element.attrib):
+        elif (element.tag == 'write-video') and ('path' not in element.attrib):
             raise AttributeError(f"{element} - path attribute must be set for a write-video")
         elif element.tag == 'write-video':
             video_clip.write_video_file(element.attrib['path'])
