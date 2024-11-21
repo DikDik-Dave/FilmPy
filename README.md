@@ -3,20 +3,15 @@ FilmPy is a python module for film editing.
 Its goal is to enable fully video and audio editing. 
 
 ## Main Functionality
-Using FilmPy you will be able to
+### Using FilmPy you will be able to
 
 |                                                        |                                                        |
 | :----------------------------------------------------- | :----------------------------------------------------- |
 | Add static image overlays to a video clip [NOT YET]    | Concatenate clips                                      |
 | Create composite video clips [NOT YET]                 | Rotate clips, images, and sequences of clips           |
-| Mirror horizontally clips, images, and clip sequences  | Mirror vertically clips, images, and clip sequences    |
-
-
-* Mirror horizontally clips, images, and clip sequences
-* Mirror vertically clips, images, and clip sequences
-* Adjust the audio volume of a clips and clip sequences [NOT YET]
-* Save a single image from a video file
-* Save clips as video files
+| Mirror horizontally clips, images, and clip sequences           | Mirror vertically clips, images, and clip sequences    |
+| Adjust the audio volume of a clips and clip sequences [NOT YET] | Save a single image from a video file |
+| Save clips as video files | |
 
 ## How To Use This Library
 ### Import the editor
