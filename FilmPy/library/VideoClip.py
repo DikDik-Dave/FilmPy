@@ -3,15 +3,15 @@ from ffmpeg import FFmpeg
 import json
 import numpy
 import subprocess
-from FilmPy.library.constants import FFMPEG_BINARY
-from FilmPy.library import Clip
+from .constants import FFMPEG_BINARY
+from .Clip import Clip
 
 
 class VideoClip(Clip):
     """
     Video Clip from a file
     """
-    def __init__(self, video_path=None,
+    def __init__(self, file_path=None,
                  frames=None,
                  start_time=0,
                  end_time=None,
@@ -19,17 +19,17 @@ class VideoClip(Clip):
         """
         Initialize a VideoClip from either a file or via direct frame data
 
-        :param video_path: path to the video file associated with this clip
+        :param file_path: path to the video file associated with this clip
         :param start_time: When does the clip start
         :param end_time: When does the clip end
         :param include_audio: Should the audio be written for this clip
         """
         # Check to make sure we did not recieve potentially conflicting inputs
-        if frames and video_path:
+        if frames and file_path:
             msg = (f" {type(self).__name__} - Conflicting input received. "
                    f"Either provide frames or video_path, not both.")
             raise ValueError(msg)
-        elif (not frames) and (not video_path):
+        elif (not frames) and (not file_path):
             msg = (f" {type(self).__name__} - Invalid input received. "
                    f"Either provide frames or video_path.")
             raise ValueError(msg)
@@ -38,11 +38,11 @@ class VideoClip(Clip):
         # after we have processed the metadata for this clip
         super().__init__(width=None, height=None, start_time=start_time,
                          end_time=end_time, video_fps=None, include_audio=include_audio,
-                         frames=frames)
+                         frames=frames, file_path=file_path)
 
         # If we have a video
-        if video_path:
-            self._set_video_info(video_path, end_time)
+        if file_path:
+            self._set_video_info(file_path, end_time)
 
 
     ###################
@@ -63,7 +63,10 @@ class VideoClip(Clip):
 
         self._media = json.loads(ffprobe.execute())
         self._video_info = self._media['streams'][0]
-        self._audio_stream = self._media['streams'][1]
+
+
+        self._audio_info = self._media['streams'][1]
+        self._audio_info['sample_rate'] = int(self._audio_info['sample_rate'])
 
         # Call ffmpeg to get additional information about the file
         ffmpeg_info_command = [FFMPEG_BINARY, "-hide_banner", "-i", video_path]
@@ -111,42 +114,6 @@ class VideoClip(Clip):
     ##################
     # Public Methods #
     ##################
-    def get_audio_data(self,
-                       file_name,
-                       fps=44100,
-                       number_bytes=2,
-                       number_channels=2):
-        """
-        Get audio data from an audio or video file
-        :param file_name: File containing audio to retrieve
-
-        :param fps:
-        :param number_bytes:
-        :param number_channels:
-        :return:
-        """
-        acodec_param = 'pcm_s%dle' % (8 * number_bytes)
-
-        ffmpeg_command = [FFMPEG_BINARY,
-                          '-i', file_name, '-vn',
-                          '-loglevel', 'error',
-                          '-f', 's%dle' % (8 * number_bytes),
-                          '-acodec', 'pcm_s%dle' % (8 * number_bytes),
-                          '-ar', '%d' % fps,
-                          '-ac', '%d' % number_channels,
-                          '-'
-                          ]
-
-        # TODO: Currently returning raw binary data, need to adjust this to get audio frames at some point
-        # TODO: Maybe Switch to PyAV for this low level stuff...
-
-        completed_process = subprocess.run(ffmpeg_command, capture_output=True)
-
-        # return completed_process.stdout
-        dt = {1: 'int8', 2: 'int16', 4: 'int32'}[number_bytes]
-        audio_data = numpy.fromstring(completed_process.stdout, dtype=dt).reshape(-1, number_channels)
-        return audio_data
-
     def get_video_frames(self):
         """
         Get the video frames
