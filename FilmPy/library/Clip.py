@@ -252,8 +252,29 @@ class Clip:
 
         return self._clip_video
 
-    def multiply_volume(self, multiplier:float,
-                            ) -> object:
+    def multiply_stereo_volume(self, left_multiplier:float, right_multiplier:float):
+        """
+        Multiplies the volume of each track independently for stereo audio
+        :param left_multiplier: Left track multiplier
+        :param right_multiplier: Right track multiplier
+        :return:
+        """
+        if not self.has_audio:
+            raise AttributeError(f"{type(self).__name__} does not have associated audio.")
+
+
+        # Ensure we have stereo data
+        audio_frames = self.get_audio_frames(self.file_path, number_channels=self.audio_channels)
+        if audio_frames.shape[1] != 2:
+            raise ValueError(f"Audio frames are not stereo")
+
+        # Set the new audio frame data
+        self.set_audio_frames((audio_frames * (left_multiplier, right_multiplier)).astype(np.int16))
+
+        # Return this object to enable method chaining
+        return self
+
+    def multiply_volume(self, multiplier:float) -> object:
         """
 
         :param multiplier: f
@@ -263,9 +284,10 @@ class Clip:
         if not self.has_audio:
             raise AttributeError(f"{type(self).__name__} does not have associated audio.")
 
+
         # Set the new audio data
         audio_frames = self.get_audio_frames(self.file_path, number_channels=self.audio_channels) * multiplier
-        self.set_audio_frames(np.rint(audio_frames).astype(np.int16))
+        self.set_audio_frames(audio_frames.astype(np.int16))
 
         # Return this object to enable method chaining
         return self
