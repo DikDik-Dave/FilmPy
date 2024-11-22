@@ -2,7 +2,6 @@ import subprocess
 import os
 from subprocess import DEVNULL, PIPE
 
-import PIL.Image
 from PIL import Image
 from .constants import AUDIO_CODECS, FFMPEG_BINARY, VIDEO_CODECS, Transpose
 import numpy as np
@@ -89,6 +88,14 @@ class Clip:
         :return:
         """
         self._audio_info['channels'] = int(value)
+
+    @property
+    def audio_sample_rate(self):
+        """
+        Audio Sample Rate for the audio
+        :return:
+        """
+        return self._audio_info['sample_rate']
 
     @property
     def end_time(self):
@@ -203,6 +210,88 @@ class Clip:
     ##################
     # Public Methods #
     ##################
+    def audio_fade_in(self, duration):
+        """
+        Apply a fade in to the audio track
+
+        :param duration: Duration, in seconds, that the fade in will last for
+        :return self: This object, to allow for method chaining
+        """
+        # Get the audio frames
+        audio_frames = self.get_audio_frames(self.file_path)
+
+        # Get the end frame for the audio fade in
+        end_frame = int(self.audio_sample_rate * duration)
+
+        # Generate the multipliers for affected audio frames
+        multipliers = [((index / self.audio_sample_rate) / duration) for index in range(end_frame)]
+
+        # Update the audio frames in quest
+        for audio_channel in range(audio_frames.shape[1]):
+            audio_frames[0:end_frame,audio_channel] = audio_frames[0:end_frame,audio_channel] * multipliers
+
+        # Replace the audio frames with the modified frames
+        self.set_audio_frames(audio_frames)
+
+        return self
+
+    def audio_fade_out(self, duration):
+        print(self._audio_info)
+        # end_frame = duration
+        pass
+
+    def audio_normalize(self):
+        """
+        Normalize the audio track volume
+        :return self: This object, to allow for method chaining
+        """
+
+        #TODO: Implement the normalization
+
+        # Allows for method chaining
+        return self
+
+    def audio_stereo_volume(self, left_multiplier:float, right_multiplier:float):
+        """
+        Multiplies the volume of each track independently for stereo audio
+        :param left_multiplier: Left track multiplier
+        :param right_multiplier: Right track multiplier
+        :return:
+        """
+        if not self.has_audio:
+            raise AttributeError(f"{type(self).__name__} does not have associated audio.")
+
+
+        # Ensure we have stereo data
+        audio_frames = self.get_audio_frames(self.file_path, number_channels=self.audio_channels)
+        if audio_frames.shape[1] != 2:
+            raise ValueError(f"Audio frames are not stereo")
+
+        # Set the new audio frame data
+        self.set_audio_frames((audio_frames * (left_multiplier, right_multiplier)).astype(np.int16))
+
+        # Return this object to enable method chaining
+        return self
+
+    def audio_volume(self, multiplier:float) -> object:
+        """
+        Adjust the volume level of the audio
+
+        :param multiplier: value to multiply the audio by
+        :return self: This object (allows for method chaining)
+        """
+        # Make sure the clip in question has audio
+        if not self.has_audio:
+            raise AttributeError(f"{type(self).__name__} does not have associated audio.")
+
+
+        # Set the new audio data
+        audio_frames = self.get_audio_frames(self.file_path, number_channels=self.audio_channels) * multiplier
+        self.set_audio_frames(audio_frames)
+
+        # Return this object to enable method chaining
+        return self
+
     def get_audio_frames(self,
                          file_name,
                          fps=44100,
@@ -252,46 +341,6 @@ class Clip:
 
         return self._clip_video
 
-    def multiply_stereo_volume(self, left_multiplier:float, right_multiplier:float):
-        """
-        Multiplies the volume of each track independently for stereo audio
-        :param left_multiplier: Left track multiplier
-        :param right_multiplier: Right track multiplier
-        :return:
-        """
-        if not self.has_audio:
-            raise AttributeError(f"{type(self).__name__} does not have associated audio.")
-
-
-        # Ensure we have stereo data
-        audio_frames = self.get_audio_frames(self.file_path, number_channels=self.audio_channels)
-        if audio_frames.shape[1] != 2:
-            raise ValueError(f"Audio frames are not stereo")
-
-        # Set the new audio frame data
-        self.set_audio_frames((audio_frames * (left_multiplier, right_multiplier)).astype(np.int16))
-
-        # Return this object to enable method chaining
-        return self
-
-    def multiply_volume(self, multiplier:float) -> object:
-        """
-
-        :param multiplier: f
-        :return:
-        """
-        # Make sure the clip in question has audio
-        if not self.has_audio:
-            raise AttributeError(f"{type(self).__name__} does not have associated audio.")
-
-
-        # Set the new audio data
-        audio_frames = self.get_audio_frames(self.file_path, number_channels=self.audio_channels) * multiplier
-        self.set_audio_frames(audio_frames.astype(np.int16))
-
-        # Return this object to enable method chaining
-        return self
-
     def mirror_x(self):
         """
         Flips the clip frames left to right
@@ -300,7 +349,7 @@ class Clip:
         """
         flipped_frames = []
         for frame in self.get_frames():
-            image = Image.fromarray(frame).transpose(PIL.Image.Transpose.FLIP_LEFT_RIGHT)
+            image = Image.fromarray(frame).transpose(Transpose.FLIP_LEFT_RIGHT)
             flipped_frames.append(np.array(image))
 
         # Replace the clip frames with the now rotated frames
@@ -317,7 +366,7 @@ class Clip:
         """
         flipped_frames = []
         for frame in self.get_frames():
-            image = Image.fromarray(frame).transpose(PIL.Image.Transpose.FLIP_TOP_BOTTOM)
+            image = Image.fromarray(frame).transpose(Transpose.FLIP_TOP_BOTTOM)
             flipped_frames.append(np.array(image))
 
         # Replace the clip frames with the now rotated frames
@@ -364,6 +413,17 @@ class Clip:
 
         # Return the requested frame
         return frames[frame_index]
+
+    def reverse_time(self):
+        """
+        Reverse the video frames for the clip
+        """
+
+        # Reverse the footage
+        self.set_frames(self.get_frames()[::-1])
+
+        # Return this object to enable method chaining
+        return self
 
     def rotate(self, angle) -> object:
         """
@@ -430,7 +490,8 @@ class Clip:
         """
         if not isinstance(value, np.ndarray):
             raise ValueError(f"{type(self).__name__}.audio_data must be an numpy array")
-        self._audio_frames = value
+
+        self._audio_frames = value.astype(np.int16)
 
     def set_frames(self, value):
         """
