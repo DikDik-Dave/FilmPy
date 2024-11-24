@@ -3,7 +3,7 @@ import os
 from subprocess import DEVNULL, PIPE
 
 from PIL import Image
-from .constants import AUDIO_CODECS, FFMPEG_BINARY, VIDEO_CODECS, Transpose
+from .constants import AUDIO_CODECS, FFMPEG_BINARY, VIDEO_CODECS, Fade, ImageModes, Transpose
 import numpy as np
 
 class Clip:
@@ -39,10 +39,14 @@ class Clip:
 
         # Clip specific attributes
         self._clip_audio = None
-        self._clip_video = [] if not frames else frames        # The frames of the clip itself
         self._clip_end = end_time                               # End time in seconds
+        self._clip_fps = fps                                    # Frames per second for the clip
+        self._clip_video = [] if not frames else frames         # The frames of the clip itself
         self._clip_start = start_time                           # Start time in seconds
-        self._clip_fps = fps                               # Frames per second for the clip
+        self._clip_info = {'resolution': None,
+                           'height': None,
+                           'width': None}
+
 
         # Video specific attributes
         self._video_info = {'height': height,
@@ -124,6 +128,32 @@ class Clip:
         return bool(self._audio_info)
 
     @property
+    def height(self):
+        """
+        Height of the clip itself, will default to video_height if not set
+
+        :return height: height of the clip
+        """
+        # If height has already been set, return it
+        if ('height' in self._clip_info) and self._clip_info['height']:
+            return self._clip_info['height']
+
+        # Default height to the video's height
+        self._clip_info['height'] = self.video_height
+
+        # Return height
+        return self._clip_info['height']
+
+    @height.setter
+    def height(self, value):
+        """
+        Set the height of the clip itself
+
+        :param value: height value
+        """
+        self._clip_height = int(value)
+
+    @property
     def start_time(self):
         """
         Retrieves the start time of the clip
@@ -153,6 +183,30 @@ class Clip:
         return self._video_info['width']
 
     @property
+    def width(self) -> int:
+        """
+        Width of the clip itself
+        :return:
+        """
+        # If width has already been set, return it
+        if ('width' in self._clip_info) and self._clip_info['width']:
+            return self._clip_info['width']
+
+        # Default width if not set to the video's width
+        self.self._clip_info['width'] = self.video_width
+
+        return self.self._clip_info['width']
+
+    @width.setter
+    def width(self, value):
+        """
+        Set the width of the clip itself
+        :param value:
+        :return:
+        """
+        self._clip_width = int(value)
+
+    @property
     def write_audio(self):
         if self._include_audio is None:
             raise TypeError(f'{type(self).__name__}.write_audio is None.')
@@ -168,6 +222,19 @@ class Clip:
             str - Path to the video file
         """
         return self._file_path
+
+    @property
+    def resolution(self):
+        """
+        Resolution of the clip
+        :return:
+        """
+        # If clip resolution is already set, return it
+        if self._clip_info['resolution']:
+            return self._clip_info['resolution']
+
+        self._clip_info['resolution'] = f"{self.width}x{self.height}"
+        return self._clip_info['resolution']
 
     @property
     def video_fps(self):
@@ -210,10 +277,11 @@ class Clip:
     ##################
     # Public Methods #
     ##################
-    def audio_fade_in(self, duration):
+    def audio_fade_in(self, duration, algorithm=Fade.LINEAR):
         """
         Apply a fade in to the audio track
 
+        :param algorithm: Type of audio fade in to implement,
         :param duration: Duration, in seconds, that the fade in will last for
         :return self: This object, to allow for method chaining
         """
@@ -222,6 +290,9 @@ class Clip:
 
         # Get the end frame for the audio fade in
         end_frame = int(self.audio_sample_rate * duration)
+
+        # TODO: Implement Logarithmic fade in
+        # Amplitude = Initial Amplitude * (1 - log(1 - (time / fade duration)))
 
         # Generate the multipliers for affected audio frames
         multipliers = [((index / self.audio_sample_rate) / duration) for index in range(end_frame)]
@@ -292,6 +363,74 @@ class Clip:
         # Return this object to enable method chaining
         return self
 
+    def bilevel(self):
+        """
+        Converts the video frames to a bilevel (black and white)
+        :return:
+        """
+
+        altered_frames = []
+        for frame in self.get_frames():
+            image = Image.fromarray(frame).convert(ImageModes.BLACK_AND_WHITE.value)
+            frame = np.stack((np.array(image), np.array(image), np.array(image)), axis=2).astype('uint8')
+            altered_frames.append(frame)
+
+        # Replace the clip frames with the now rotated frames
+        self.set_frames(altered_frames)
+
+        # Return this object to enable method chaining
+        return self
+
+    def border(self,
+               border:int=0,
+               border_left:int=0,
+               border_right:int=0,
+               border_top:int=0,
+               border_bottom:int=0,
+               fill_color=(255,255,0)):
+        """
+        Add a border (could be thought of as a margin or frame as well).
+        Basically add X pixels around the existing image in the requested color.
+
+        :param border        : Border in pixels to create around the existing frames
+        :param border_left   : Left border to create around the frame (will be added to border if specified)
+        :param border_right  : Right border to create around the frame (will be added to border if specified)
+        :param border_top    : Top border to create around the frame (will be added to border if specified)
+        :param border_bottom : Bottom border to create around the frame (will be added to border if specified)
+        :param fill_color    : Color to use for the border
+        """
+        # Determine the border sizes
+        border_left = border + border_left
+        border_right = border + border_right
+        border_top = border + border_top
+        border_bottom = border + border_bottom
+
+
+        # Generate the border arrays
+        border_height = border_top+self.height+border_bottom
+        left_column = np.tile(np.array(fill_color), border_height*border_left).reshape(border_height, border_left, 3)
+        right_column = np.tile(np.array(fill_color), border_height*border_right).reshape(border_height, border_right, 3)
+        top_row = np.tile(np.array(fill_color), border_top*self.width).reshape(border_top, self.width, 3)
+        bottom_row = np.tile(np.array(fill_color), border_bottom*self.width).reshape(border_bottom, self.width, 3)
+
+        # Update the frames
+        altered_frames = []
+        new_frame = None
+        for frame in self.get_frames():
+            new_frame = np.concatenate((top_row, frame, bottom_row), axis=0) # Concatenate Rows
+            altered_frames.append(np.concatenate((left_column, new_frame, right_column), axis=1)) # Concatenate Columns
+
+        print(new_frame.shape)
+        self.height = new_frame.shape[0]
+        self.width = new_frame.shape[1]
+
+        # Set the new frames for this video
+        self.set_frames(altered_frames)
+
+        # Enable method chaining
+        return self
+
+
     def get_audio_frames(self,
                          file_name,
                          fps=44100,
@@ -340,6 +479,23 @@ class Clip:
         self._clip_video = self.get_video_frames()
 
         return self._clip_video
+
+    def grayscale(self):
+        """
+        Converts the video to grayscale
+        :return self: Enables method chaining
+        """
+        altered_frames = []
+        for frame in self.get_frames():
+            image = Image.fromarray(frame).convert(ImageModes.GRAYSCALE.value)
+            frame = np.stack((np.array(image), np.array(image), np.array(image)), axis=2).astype('uint8')
+            altered_frames.append(frame)
+
+
+        # Replace the clip frames with the now rotated frames
+        self.set_frames(altered_frames)
+
+        return self
 
     def mirror_x(self):
         """
@@ -414,9 +570,19 @@ class Clip:
         # Return the requested frame
         return frames[frame_index]
 
+    def resize(self, multiplier=None, *args, **kwargs):
+        """
+        Resize the video frames for the clip
+        :param: multiplier
+        :return self: (to enable method chaining)
+        """
+        print(multiplier)
+        print(kwargs)
+
     def reverse_time(self):
         """
         Reverse the video frames for the clip
+        :return self: (to enable method chaining)
         """
 
         # Reverse the footage
@@ -543,12 +709,13 @@ class Clip:
                    '-y',  # Overwrite output file if it exists
                    '-f', 'rawvideo',  #
                    '-vcodec', 'rawvideo',  #
-                   '-s', self._video_info['resolution'],  # size of one frame
+                   '-s', self.resolution,  # size of one frame
                    '-pix_fmt', 'rgb24',  # pixel format
                    '-r', '%d' % self.video_fps,  # frames per second
                    '-i', '-',  # the input comes from a pipe
                    '-an']                                   # tells FFMPEG not to expect any audio
 
+        print(command)
         # If we have an audio stream and we are to write audio
         if self._audio_info and write_audio:
             # TODO: Pull this data from audio_stream or somewhere...
@@ -588,10 +755,10 @@ class Clip:
             '-preset', 'medium',
             '-pix_fmt', self._video_info['pix_fmt'],
             file_path])
-
+        print(command)
         # Write all the video frame data to the PIPE's standard input
-        process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stdin=subprocess.PIPE,  bufsize=10 ** 8)
-        for frame in self.get_frames():
-            process.stdin.write(frame.tobytes())
-        process.stdin.close()
-        process.wait()
+        # process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stdin=subprocess.PIPE,  bufsize=10 ** 8)
+        # for frame in self.get_frames():
+        #     process.stdin.write(frame.tobytes())
+        # process.stdin.close()
+        # process.wait()
