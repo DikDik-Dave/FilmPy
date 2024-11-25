@@ -9,9 +9,10 @@ Its goal is to enable fully video and audio editing.
 | :----------------------------------------------------- | :----------------------------------------------------- | :---------------- |
 | Decrease the volume                                    | Add borders (margin) to the footage                    | Add static image overlays to a video clip [NOT YET]                  |
 | Increase the volume    | Mirror footage horizontally                            | Concatenate clips |
-|                                                        | Mirror footage vertically                              |                   |
-| Adjust the audio volume of a clips and clip sequences [NOT YET] | Save a single image from a video file ||
-|                  | Convert footage to grayscale           ||
+| Fade Ins                                                       | Mirror footage vertically                              | Save a single image from a video file                  |
+| Fade Outs [NOT YET] ||
+|  | Save a single image from a video file ||
+|                  | Convert footage to grayscale           | Resize the footage using various resampling methods |
 | Mirror horizontally clips, images, and clip sequences           | Reverse footage    ||
 | Adjust the audio volume of a clips and clip sequences [NOT YET] | Save a single image from a video file ||
 | Save clips as video files | Rotate clips, images, and sequences of clips||
