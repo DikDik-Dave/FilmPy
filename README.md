@@ -7,7 +7,8 @@ Its goal is to enable fully video and audio editing.
 
 |  Audio Functionality                                   |  Image & Video Functionality                           | Editing           |
 | :----------------------------------------------------- | :----------------------------------------------------- | :---------------- |
-| Add static image overlays to a video clip [NOT YET]    | Mirror footage horizontally                            | Concatenate clips |
+| Decrease the volume                                    | Add borders (margin) to the footage                    | Add static image overlays to a video clip [NOT YET]                  |
+| Increase the volume    | Mirror footage horizontally                            | Concatenate clips |
 |                                                        | Mirror footage vertically                              |                   |
 | Adjust the audio volume of a clips and clip sequences [NOT YET] | Save a single image from a video file ||
 |                  | Convert footage to grayscale           ||
