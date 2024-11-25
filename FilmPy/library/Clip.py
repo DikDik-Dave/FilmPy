@@ -3,7 +3,7 @@ import os
 from subprocess import DEVNULL, PIPE
 
 from PIL import Image
-from .constants import AUDIO_CODECS, FFMPEG_BINARY, VIDEO_CODECS, Fade, ImageModes, Transpose
+from .constants import *
 import numpy as np
 
 class Clip:
@@ -128,7 +128,7 @@ class Clip:
         return bool(self._audio_info)
 
     @property
-    def height(self):
+    def height(self) -> int | None:
         """
         Height of the clip itself, will default to video_height if not set
 
@@ -151,7 +151,7 @@ class Clip:
 
         :param value: height value
         """
-        self._clip_height = int(value)
+        self._clip_info['height'] = int(value)
 
     @property
     def start_time(self):
@@ -170,20 +170,29 @@ class Clip:
         self._clip_start = start_time
 
     @property
-    def video_height(self):
+    def video_height(self) -> int:
+        """
+        Height of the underlying video associated to this clip
+
+        :raises ValueError: Video info has no height attribute
+        """
         if 'height' not in self._video_info:
-            raise TypeError(f'{type(self).__name__}.video_frame_height is None.')
+            raise ValueError(f'{type(self).__name__}.video_height cannot be None.')
         return self._video_info['height']
 
-
     @property
-    def video_width(self):
+    def video_width(self) -> int:
+        """
+        Width of the underlying video associated to this clip
+
+        :raises ValueError: Video info has no width attribute
+        """
         if 'width' not in self._video_info:
-            return TypeError(f'{type(self).__name__}.video_frame_width is None')
+            raise ValueError(f'{type(self).__name__}.video_width cannot be None')
         return self._video_info['width']
 
     @property
-    def width(self) -> int:
+    def width(self) -> int | None:
         """
         Width of the clip itself
         :return:
@@ -193,9 +202,11 @@ class Clip:
             return self._clip_info['width']
 
         # Default width if not set to the video's width
-        self.self._clip_info['width'] = self.video_width
+        self._clip_info['width'] = self.video_width
 
-        return self.self._clip_info['width']
+        # Update the clip's resolution
+        self._clip_info['resolution'] = f"{self._clip_info['width']}x{self._clip_info['height']}"
+        return self._clip_info['width']
 
     @width.setter
     def width(self, value):
@@ -204,7 +215,8 @@ class Clip:
         :param value:
         :return:
         """
-        self._clip_width = int(value)
+        self._clip_info['width'] = int(value)
+        self._clip_info['resolution'] = f"{self._clip_info['width']}x{self._clip_info['height']}"
 
     @property
     def write_audio(self):
@@ -405,7 +417,6 @@ class Clip:
         border_top = border + border_top
         border_bottom = border + border_bottom
 
-
         # Generate the border arrays
         border_height = border_top+self.height+border_bottom
         left_column = np.tile(np.array(fill_color), border_height*border_left).reshape(border_height, border_left, 3)
@@ -416,11 +427,14 @@ class Clip:
         # Update the frames
         altered_frames = []
         new_frame = None
+        last_frame = None
         for frame in self.get_frames():
+            last_frame = frame
             new_frame = np.concatenate((top_row, frame, bottom_row), axis=0) # Concatenate Rows
-            altered_frames.append(np.concatenate((left_column, new_frame, right_column), axis=1)) # Concatenate Columns
+            new_frame = np.concatenate((left_column, new_frame, right_column), axis=1)
+            altered_frames.append(new_frame.astype('uint8')) # Concatenate Columns
 
-        print(new_frame.shape)
+        # Set the new frame shape
         self.height = new_frame.shape[0]
         self.width = new_frame.shape[1]
 
@@ -570,14 +584,47 @@ class Clip:
         # Return the requested frame
         return frames[frame_index]
 
-    def resize(self, multiplier=None, *args, **kwargs):
+    def resize(self, *args, **kwargs):
         """
         Resize the video frames for the clip
-        :param: multiplier
+        :param: multiplier: Resizing multiplier
+        :param resample: Which resampling method to use during resizing (Defaults to BICUBIC)
         :return self: (to enable method chaining)
         """
-        print(multiplier)
-        print(kwargs)
+        # Instantiate local variables
+        new_height = None
+        new_width = None
+
+        # We received 1 argument, treat it to be multiplier
+        if len(args) == 1:
+            kwargs['multiplier'] = args[0]
+
+
+        # Default the resample method to BICUBIC
+        if ('resample' not in kwargs) or (not kwargs['resample']):
+            kwargs['resample'] = Resampling.BICUBIC.value
+
+
+        if 'multiplier' in kwargs:
+            new_height = int(self.height * float(kwargs['multiplier']))
+            new_width =  int(self.width * float(kwargs['multiplier']))
+
+
+        # Update the frames
+        altered_frames = []
+        for frame in self.get_frames():
+            image = Image.fromarray(frame).resize((new_width, new_height), kwargs['resample'])
+            altered_frames.append(np.array(image).astype('uint8'))
+
+        # Adjust the size of the clip
+        self.height = new_height
+        self.width = new_width
+
+        # Set the new frames for this video
+        self.set_frames(altered_frames)
+
+        # Return this object to enable method chaining
+        return self
 
     def reverse_time(self):
         """
@@ -715,7 +762,6 @@ class Clip:
                    '-i', '-',  # the input comes from a pipe
                    '-an']                                   # tells FFMPEG not to expect any audio
 
-        print(command)
         # If we have an audio stream and we are to write audio
         if self._audio_info and write_audio:
             # TODO: Pull this data from audio_stream or somewhere...
@@ -755,10 +801,10 @@ class Clip:
             '-preset', 'medium',
             '-pix_fmt', self._video_info['pix_fmt'],
             file_path])
-        print(command)
+
         # Write all the video frame data to the PIPE's standard input
-        # process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stdin=subprocess.PIPE,  bufsize=10 ** 8)
-        # for frame in self.get_frames():
-        #     process.stdin.write(frame.tobytes())
-        # process.stdin.close()
-        # process.wait()
+        process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stdin=subprocess.PIPE,  bufsize=10 ** 8)
+        for frame in self.get_frames():
+            process.stdin.write(frame.tobytes())
+        process.stdin.close()
+        process.wait()
