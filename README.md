@@ -10,7 +10,7 @@ Its goal is to enable fully video and audio editing.
 | Decrease the volume                                    | Add borders (margin) to the footage                    | Add static image overlays to a video clip [NOT YET]                  |
 | Increase the volume    | Mirror footage horizontally                            | Concatenate clips |
 | Fade Ins                                                       | Mirror footage vertically                              | Save a single image from a video file                  |
-| Fade Outs [NOT YET] || Find fonts installed on your system (Windows only for now) |
+| Fade Outs [NOT YET] || Find installed fonts (Windows Only) |
 |  | 
 |                  | Convert footage to grayscale           | Resize the footage using various resampling methods |
 | Mirror horizontally clips, images, and clip sequences           | Reverse footage    ||
