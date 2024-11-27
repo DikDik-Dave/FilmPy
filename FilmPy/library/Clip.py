@@ -13,17 +13,18 @@ class Clip:
 
     def __init__(self,
                  audio_frames=None,
+                 end_time=None,
                  fps=None,
                  file_path=None,
                  frames=None,
-                 end_time=None,
-                 width=None,
                  height=None,
+                 include_audio=None,
+                 width=None,
                  start_time=0,
                  video_end_time=None,
                  video_fps=None,
                  video_frames=None,
-                 include_audio=None):
+                 ):
         """
         Initialize this Clip
 
@@ -35,18 +36,20 @@ class Clip:
         """
 
         # Audio Specific Attributes
-        self._audio_info = {}         # Audio metadata
-        self._audio_frames = audio_frames # Primary Audio Frame Data
+        self._audio_info = {}               # Audio metadata
+        self._audio_frames = audio_frames   # Primary Audio Frame Data
 
         # Clip specific attributes
-        self._clip_audio = None
-        self._clip_fps = fps                                    # Frames per second for the clip
-        self._clip_video = [] if not frames else frames         # The frames of the clip itself
-        self._clip_start = start_time                           # Start time in seconds
-        self._clip_info = {'resolution': None,
-                           'height': None,
-                           'width': None,
-                           'end_time': end_time}
+        self._clip_audio = None                             # The audio data of the clip itself
+        self._clip_video = [] if not frames else frames     # The frames of the clip itself
+        self._clip_info = {'end_time': end_time,            # End time in seconds
+                           'fps': fps,                      # Frames per second for the clip
+                           'height': None,                  # Height (in pixels) of the clip
+                           'include_audio': include_audio,  # Should the audio be included when the clip is rendered
+                           'width': None,                   # Width (in pixels) of the clip
+                           'resolution': None,              # Resolution string '{width}x{height}'
+                           'start_time': start_time         # Start time in seconds
+                           }
 
         # Video specific attributes
         self._video_info = {'end_time': video_end_time,
@@ -58,9 +61,6 @@ class Clip:
 
         # File specific attributes
         self._file_path = file_path  # Path to whatever file is associated to this clip
-
-        # Should the audio data be written for this clip
-        self._include_audio = include_audio
 
     ####################
     # Expected Methods #
@@ -102,9 +102,9 @@ class Clip:
         """
         return self._audio_info['sample_rate']
 
-    ############################
-    # Property Methods - Clip  #
-    ############################
+    ######################################
+    # Property Methods - Clip Attributes #
+    ######################################
     @property
     def end_time(self):
         """
@@ -168,17 +168,19 @@ class Clip:
     def start_time(self):
         """
         Retrieves the start time of the clip
+
         :return: start time of the clip in seconds
         """
-        return self._clip_start
+        return self._clip_info['start_time']
 
     @start_time.setter
-    def start_time(self, start_time):
+    def start_time(self, value):
         """
         Set the start time for the clip
-        :param start_time:
+
+        :param value: Value of start time in seconds, must be able to be casted into a float
         """
-        self._clip_start = start_time
+        self._clip_info['start_time'] = float(start_time)
 
     @property
     def video_height(self) -> int:
@@ -309,10 +311,14 @@ class Clip:
         return self._video_info['resolution']
 
     @property
-    def write_audio(self):
-        if self._include_audio is None:
-            raise TypeError(f'{type(self).__name__}.write_audio is None.')
-        return self._include_audio
+    def include_audio(self):
+        """
+        Should the audio of this clip be included
+        :return:
+        """
+        if self._clip_info['include_audio'] is None:
+            raise ValueError(f'{type(self).__name__}.include_audio cannot be None.')
+        return self._clip_info['include_audio']
 
     ###################
     # Private Methods #
@@ -518,6 +524,13 @@ class Clip:
         dt = {1: 'int8', 2: 'int16', 4: 'int32'}[number_bytes]
         self._audio_frames = np.fromstring(completed_process.stdout, dtype=dt).reshape(-1, number_channels)
         return self._audio_frames
+
+    def get_mask_frames(self):
+        """
+        Get the
+        :return:
+        """
+
 
     def get_frames(self):
         """
