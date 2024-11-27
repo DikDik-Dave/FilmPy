@@ -1,6 +1,6 @@
 import os
 import subprocess
-from FilmPy.library.constants import AUDIO_CODECS, FFMPEG_BINARY, VIDEO_CODECS
+from .constants import AUDIO_CODECS, FFMPEG_BINARY, VIDEO_CODECS
 
 class Sequence:
     """
@@ -28,11 +28,11 @@ class Sequence:
             if clip.video_fps > self.fps:
                 self.fps = clip.video_fps
 
-            if self.frame_width < clip.video_frame_width:
-                self.frame_width = clip.video_frame_width
+            if self.frame_width < clip.video_width:
+                self.frame_width = clip.video_width
 
-            if self.frame_height < clip.video_frame_height:
-                self.frame_height = clip.video_frame_height
+            if self.frame_height < clip.video_height:
+                self.frame_height = clip.video_height
         self.frame_size = f"{self.frame_width}x{self.frame_height}"
     ##################
     # Public Methods #
@@ -110,7 +110,7 @@ class Sequence:
                 # If the clip has audio and the audio should be written add it to the array
                 # of audio data we will write
                 if clip.has_audio and clip.write_audio:
-                    audio_data.extend(clip.get_audio_data(clip.video_file_path, fps, number_bytes, number_channels))
+                    audio_data.extend(clip.get_audio_frames(clip.file_path, fps, number_bytes, number_channels))
 
             temp_audio_file_name = f"{file_name}_wvf_snd.tmp.{audio_extension}"
 
