@@ -1,8 +1,8 @@
+import os
+
 from FilmPy.library import *
-import numpy as np
-
-from FilmPy.library.ImageClip import ImageClip
-
+from FilmPy.library.CompositeClip import CompositeClip
+from FilmPy.library.constants import *
 
 class Editor:
     """
@@ -33,7 +33,26 @@ class Editor:
         return ColorClip(color,frame_width, frame_height, video_fps, end_time)
 
     @classmethod
-    def image_clip(cls, **kwargs):
+    def composite_clip(cls, *args, **kwargs):
+        """
+        Instantiate a CompositeClip
+
+        :param args: Arguments to pass to Composite Clip, See CompositeClip for the exact arguments
+        :param kwargs: Keyword arguments to pass to Composite Clip, See CompositeClip for the exact arguments
+
+        :return CompositeClip: Instantiated composite clip
+        """
+        return CompositeClip(*args, **kwargs)
+
+    @classmethod
+    def image_clip(cls, **kwargs) -> ImageClip:
+        """
+        Instantiates a clip from an image (via data or path to file)
+
+        :param kwargs: Keyword arguments that will be passed to ImageClip.
+
+        :return:
+        """
         return ImageClip(**kwargs)
 
     @classmethod
@@ -45,18 +64,80 @@ class Editor:
         return Sequence()
 
     @classmethod
-    def video_file_clip(cls, clip_path):
+    def text_clip(cls, *args, **kwargs):
         """
-        Instantiate a VideoFileClip object
-
-        :return: VideoFileClip
+        Instantiate a clip from a piece of text
+        :param args:
+        :param kwargs:
+        :return:
         """
-        return VideoFileClip(clip_path)
+        return TextClip(*args, **kwargs)
 
+    @classmethod
+    def video_clip(cls, *args, **kwargs):
+        """
+        Instantiate a VideoClip object
+        Can be instantiated via the following inputs
+        video_clip(filename) --> {video_path = filename }
+        video_clip(video_path=XXX, arg2=YYY) --> {video_path = XXX, arg2 = YYY}
+
+        :return: VideoClip
+        """
+        # Were a given a single argument, treat it as the video_path
+        if len(args) == 1:
+            kwargs.update({'file_path':args[0]})
+
+        return VideoClip(**kwargs)
+
+    @classmethod
+    def video_clips(cls, *args, **kwargs):
+        """
+        Instantiate multiple video clips, useful when you need multiple versions of the same clip
+        :param args:
+        :param kwargs:
+        :return:
+        """
+
+        # Ensure we have 'count' as a keyword argument
+        if 'count' not in kwargs:
+            raise KeyError(f'{type(cls).__name__}.video_clips expects count as a keyword argument.')
+
+        # Get the count, and remove it as a keyword argument
+        count = int(kwargs['count'])
+        del kwargs['count']
+
+        # Get the requested number of video clips
+        objects = []
+
+        for _ in range(count):
+            objects.append(VideoClip(**kwargs))
+
+        return objects
 
     ##################
     # Public Methods #
     ##################
+    @classmethod
+    def get_installed_fonts(cls) -> dict:
+        """
+        Windows specific function for getting fonts.
+        :return font_map: Dictionary of fonts installed
+        """
+        font_map = {}
+        font_directory = 'C:\\Windows\\Fonts'
+        for file in os.listdir(font_directory):
+            # Get the name and extension
+            parts = file.split('.')
+            name = parts[0]
+            extension = parts[-1]
+
+            # If it is a font file, add it to the list
+            if extension in FONT_EXTENSIONS:
+                font_map[name] = f"{font_directory}\\{file}"
+
+        # Return the font map
+        return font_map
+
     @classmethod
     def concatenate(cls, clips) -> Sequence:
         """
@@ -66,115 +147,3 @@ class Editor:
         :return: Sequence - The clips combined into a single sequence
         """
         return Sequence(clips)
-
-
-    # @classmethod
-    # def concatenate(cls, clips):
-    #     """
-    #     Concatenate Video Clips
-    #
-    #     :param clips:
-    #     :return:
-    #     """
-    #     timings = np.cumsum([0] + [clip.video_duration for clip in clips])
-    #     print(timings)
-    #
-    #     timings = np.cumsum([clip.video_duration for clip in clips])
-    #     print(timings)
-    #     max_width = max([clip.video_width for clip in clips])
-    #     max_height = max([clip.video_height for clip in clips])
-    #     print(max_width)
-    #     print(max_height)
-    #
-    #     timings = np.maximum(0, timings + padding * np.arange(len(timings)))
-    #     timings[-1] -= padding  # Last element is the duration of the whole
-    #     #
-    #     # if method == "chain":
-    #     #
-    #     #     def make_frame(t):
-    #     #         i = max([i for i, e in enumerate(timings) if e <= t])
-    #     #         return clips[i].get_frame(t - timings[i])
-    #     #
-    #     #     def get_mask(clip):
-    #     #         mask = clip.mask or ColorClip([1, 1], color=1, is_mask=True)
-    #     #         if mask.duration is None:
-    #     #             mask.duration = clip.duration
-    #     #         return mask
-    #     #
-    #     result = VideoClip(is_mask=is_mask, make_frame=make_frame)
-    #     if any([clip.mask is not None for clip in clips]):
-    #         masks = [get_mask(clip) for clip in clips]
-    #         result.mask = concatenate_videoclips(masks, method="chain", is_mask=True)
-    #         result.clips = clips
-
-
-
-        #
-        # timings = np.cumsum([0] + [clip.duration for clip in clips])
-        #
-        # sizes = [clip.size for clip in clips]
-        #
-        # w = max(size[0] for size in sizes)
-        # h = max(size[1] for size in sizes)
-        #
-        # timings = np.maximum(0, timings + padding * np.arange(len(timings)))
-        # timings[-1] -= padding  # Last element is the duration of the whole
-        #
-        # if method == "chain":
-        #
-        #     def make_frame(t):
-        #         i = max([i for i, e in enumerate(timings) if e <= t])
-        #         return clips[i].get_frame(t - timings[i])
-        #
-        #     def get_mask(clip):
-        #         mask = clip.mask or ColorClip([1, 1], color=1, is_mask=True)
-        #         if mask.duration is None:
-        #             mask.duration = clip.duration
-        #         return mask
-        #
-        #     result = VideoClip(is_mask=is_mask, make_frame=make_frame)
-        #     if any([clip.mask is not None for clip in clips]):
-        #         masks = [get_mask(clip) for clip in clips]
-        #         result.mask = concatenate_videoclips(masks, method="chain", is_mask=True)
-        #         result.clips = clips
-        # elif method == "compose":
-        #     result = CompositeVideoClip(
-        #         [
-        #             clip.with_start(t).with_position("center")
-        #             for (clip, t) in zip(clips, timings)
-        #         ],
-        #         size=(w, h),
-        #         bg_color=bg_color,
-        #         is_mask=is_mask,
-        #     )
-        # else:
-        #     raise Exception(
-        #         "MoviePy Error: The 'method' argument of "
-        #         "concatenate_videoclips must be 'chain' or 'compose'"
-        #     )
-        #
-        # result.timings = timings
-        #
-        # result.start_times = timings[:-1]
-        # result.start, result.duration, result.end = 0, timings[-1], timings[-1]
-        #
-        # audio_t = [
-        #     (clip.audio, t) for clip, t in zip(clips, timings) if clip.audio is not None
-        # ]
-        # if audio_t:
-        #     result.audio = CompositeAudioClip([a.with_start(t) for a, t in audio_t])
-        #
-        # fpss = [clip.fps for clip in clips if getattr(clip, "fps", None) is not None]
-        # result.fps = max(fpss) if fpss else None
-        # return result
-
-        #     def make_frame(t):
-        #         i = max([i for i, e in enumerate(timings) if e <= t])
-        #         return clips[i].get_frame(t - timings[i])
-        #
-        #     def get_mask(clip):
-        #         mask = clip.mask or ColorClip([1, 1], color=1, is_mask=True)
-        #         if mask.duration is None:
-        #             mask.duration = clip.duration
-        #         return mask
-        #
