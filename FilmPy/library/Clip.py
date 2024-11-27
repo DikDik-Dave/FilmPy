@@ -20,6 +20,7 @@ class Clip:
                  width=None,
                  height=None,
                  start_time=0,
+                 video_end_time=None,
                  video_fps=None,
                  video_frames=None,
                  include_audio=None):
@@ -39,17 +40,17 @@ class Clip:
 
         # Clip specific attributes
         self._clip_audio = None
-        self._clip_end = end_time                               # End time in seconds
         self._clip_fps = fps                                    # Frames per second for the clip
         self._clip_video = [] if not frames else frames         # The frames of the clip itself
         self._clip_start = start_time                           # Start time in seconds
         self._clip_info = {'resolution': None,
                            'height': None,
-                           'width': None}
-
+                           'width': None,
+                           'end_time': end_time}
 
         # Video specific attributes
-        self._video_info = {'height': height,
+        self._video_info = {'end_time': video_end_time,
+                            'height': height,
                             'width': width,
                             'fps': video_fps,
                             'resolution': f"{width}x{height}"}  # Video metadata
@@ -73,9 +74,9 @@ class Clip:
         """
         raise NotImplementedError(f"{type(self).__name__}.get_video_frames has not been implemented")
 
-    ####################
-    # Property Methods #
-    ####################
+    ############################
+    # Property Methods - Audio #
+    ############################
     @property
     def audio_channels(self):
         """
@@ -101,22 +102,32 @@ class Clip:
         """
         return self._audio_info['sample_rate']
 
+    ############################
+    # Property Methods - Clip  #
+    ############################
     @property
     def end_time(self):
         """
-        End time of the clip
-        :return : end time of the clip in seconds
+        End time of the clip in seconds
         """
-        return self._clip_end
+        # If the end time for the clip has already been set, return it
+        if self._clip_info['end_time']:
+            return self._clip_info['end_time']
+
+        # Default the end_time of the clip to the video end time
+        self.end_time = self.video_end_time
+
+        # Return the end time of the clip
+        return self._clip_info['end_time']
 
     @end_time.setter
-    def end_time(self, end_time):
+    def end_time(self, value):
         """
         Set the end time for the clip
 
-        :param end_time: End time of the clip in seconds
+        :param value: End time of the clip in seconds
         """
-        self._clip_end = end_time
+        self._clip_info['end_time'] = float(value)
 
     @property
     def has_audio(self):
@@ -128,7 +139,7 @@ class Clip:
         return bool(self._audio_info)
 
     @property
-    def height(self) -> int | None:
+    def height(self) -> int:
         """
         Height of the clip itself, will default to video_height if not set
 
@@ -219,12 +230,6 @@ class Clip:
         self._clip_info['resolution'] = f"{self._clip_info['width']}x{self._clip_info['height']}"
 
     @property
-    def write_audio(self):
-        if self._include_audio is None:
-            raise TypeError(f'{type(self).__name__}.write_audio is None.')
-        return self._include_audio
-
-    @property
     def file_path(self):
         """
         Path to the video file
@@ -236,7 +241,7 @@ class Clip:
         return self._file_path
 
     @property
-    def resolution(self):
+    def resolution(self) -> str | None:
         """
         Resolution of the clip
         :return:
@@ -247,6 +252,35 @@ class Clip:
 
         self._clip_info['resolution'] = f"{self.width}x{self.height}"
         return self._clip_info['resolution']
+
+    @property
+    def video_duration(self) -> float:
+        """
+        Duration in seconds of the video
+        """
+        return self._video_info['duration']
+
+    @property
+    def video_end_time(self):
+        """
+        End time of the video itself
+        """
+        # Has end time for the video already been set, if so return it
+        if self._video_info['end_time']:
+            return self._video_info['end_time']
+
+        # Default to video duration
+        self.video_end_time = self.video_duration
+
+        # Return the video duration
+        return self._video_info['end_time']
+
+    @video_end_time.setter
+    def video_end_time(self, value):
+        """
+        Set the video_end_time attribute
+        """
+        self._video_info['end_time'] = float(value)
 
     @property
     def video_fps(self):
@@ -273,6 +307,12 @@ class Clip:
         if 'resolution' not in self._video_info:
             raise TypeError(f'{type(self).__name__}.video_resolution is None.')
         return self._video_info['resolution']
+
+    @property
+    def write_audio(self):
+        if self._include_audio is None:
+            raise TypeError(f'{type(self).__name__}.write_audio is None.')
+        return self._include_audio
 
     ###################
     # Private Methods #
