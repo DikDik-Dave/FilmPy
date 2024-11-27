@@ -13,25 +13,27 @@ class Clip:
 
     def __init__(self,
                  audio_frames=None,
-                 end_time=None,
-                 fps=None,
+                 clip_end_time=None,
+                 clip_fps=None,
+                 clip_start_time=0,
+                 clip_width=None,
                  file_path=None,
                  frames=None,
                  height=None,
                  include_audio=None,
-                 width=None,
-                 start_time=0,
+                 mask_frames=None,
+                 mask_behavior=MaskBehavior.LOOP_FRAMES,
                  video_end_time=None,
                  video_fps=None,
-                 video_frames=None,
+                 video_frames=None
                  ):
         """
         Initialize this Clip
 
-        :param width:
+        :param clip_width:
         :param height:
-        :param start_time:
-        :param end_time:
+        :param clip_start_time:
+        :param clip_end_time:
         :param video_fps:
         """
 
@@ -42,25 +44,31 @@ class Clip:
         # Clip specific attributes
         self._clip_audio = None                             # The audio data of the clip itself
         self._clip_video = [] if not frames else frames     # The frames of the clip itself
-        self._clip_info = {'end_time': end_time,            # End time in seconds
-                           'fps': fps,                      # Frames per second for the clip
-                           'height': None,                  # Height (in pixels) of the clip
+        self._clip_info = {'end_time': clip_end_time,  # End time in seconds
+                           'fps': clip_fps,  # Frames per second for the clip
+                           'height': None,  # Height (in pixels) of the clip
                            'include_audio': include_audio,  # Should the audio be included when the clip is rendered
-                           'width': None,                   # Width (in pixels) of the clip
-                           'resolution': None,              # Resolution string '{width}x{height}'
-                           'start_time': start_time         # Start time in seconds
+                           'width': None,  # Width (in pixels) of the clip
+                           'resolution': None,  # Resolution string '{width}x{height}'
+                           'start_time': clip_start_time  # Start time in seconds
                            }
 
         # Video specific attributes
         self._video_info = {'end_time': video_end_time,
                             'height': height,
-                            'width': width,
+                            'width': clip_width,
                             'fps': video_fps,
-                            'resolution': f"{width}x{height}"}  # Video metadata
+                            'resolution': f"{clip_width}x{height}"}  # Video metadata
         self._video_frames = [] if not video_frames else video_frames       # Frames that make up the video
 
         # File specific attributes
         self._file_path = file_path  # Path to whatever file is associated to this clip
+
+        # Mask specific attributes
+        self._mask = {'frames':mask_frames, 'behavior': mask_behavior, 'initialized': False}
+        if isinstance(self._mask['behavior'], Enum):
+            self._mask['behavior'] = self._mask['behavior'].value
+
 
     ####################
     # Expected Methods #
@@ -531,6 +539,27 @@ class Clip:
         :return:
         """
 
+        # Previously initialized frames have been created, so return them
+        if self._mask['initialized']:
+            return self._mask['frames']
+
+        # No mask exists, so we need to create one
+        if len(self._mask) == 0:
+            self._mask['frames'] = [np.tile(True, self.width * self.height).reshape(self.height, self.width)]
+
+        # If mask behavior is to loop, then create all the mask frames we need, and replace the mask frames we had
+        if self._mask['behavior'] == MaskBehavior.LOOP_FRAMES.value:
+            looped_mask_frames = []
+            for frame_index in range(self.number_frames):
+                mask_frame_index = frame_index % len(self._mask['frames'])
+                looped_mask_frames.append(self._mask['frames'][mask_frame_index])
+            self._mask['frames'] = looped_mask_frames
+
+        # Update the mask initialized flag
+        self._mask['initialized'] = True
+
+        # Return the mask frames
+        return self._mask['frames']
 
     def get_frames(self):
         """
