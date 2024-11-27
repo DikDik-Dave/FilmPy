@@ -1,6 +1,6 @@
 # Changelog for FilmPY
 
-## [0.0.0] - YYYY-MM-DD
+## [0.0.0] - YYYY-MM-DD - Initial Release
 
 - Initial release of the project
 
@@ -16,8 +16,20 @@
 - Added library/Sequence.py - class to represent a sequence of clips
 - Added Editor.py - Utility class made to simplify module usage by providing a single import
 
-## [0.1.0] - YYYY-MM-DD - Introduction of testing
-- Documented the workflow for application testing
-- Introduced the usage of pytest
+## [0.1.0] - YYYY-MM-DD - Sphinx Documentation
+### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+## [0.2.0] - YYYY-MM-DD - pytest
+### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+### Security
 
 
