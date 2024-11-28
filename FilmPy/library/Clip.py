@@ -45,7 +45,7 @@ class Clip:
         self._clip_audio = None                             # The audio data of the clip itself
         self._clip_frames = [] if not clip_frames else clip_frames     # The frames of the clip itself
         self._clip_info = {'end_time': clip_end_time,  # End time in seconds
-                           'fps': clip_fps,  # Frames per second for the clip
+                           'fps': clip_fps,                 # Frames per second for the clip
                            'height': None,                  # Height (in pixels) of the clip
                            'include_audio': include_audio,  # Should the audio be included when the clip is rendered
                            'number_frames': None,           # Number of video frames in the clip
@@ -139,6 +139,29 @@ class Clip:
         self._clip_info['end_time'] = float(value)
 
     @property
+    def fps(self):
+        """
+        Frames per second of the clip itself
+        """
+        # If frames per second is already set, return it
+        if self._clip_info['fps']:
+            return self._clip_info['fps']
+
+        # Default it to video frames per second
+        self._clip_info['fps'] = self.video_fps
+
+        # return frames per second
+        return self._clip_info['fps']
+
+    @fps.setter
+    def fps(self, value):
+        """
+        Set frames per second for the clip itself
+        :param value:
+        """
+        self._clip_info['fps'] = float(fps)
+
+    @property
     def has_audio(self):
         """
         Checks if the clip in question has audio data
@@ -196,6 +219,19 @@ class Clip:
         :return:
         """
         self._clip_info['number_frames'] = int(value)
+
+    @property
+    def resolution(self) -> str | None:
+        """
+        Resolution of the clip
+        :return:
+        """
+        # If clip resolution is already set, return it
+        if self._clip_info['resolution']:
+            return self._clip_info['resolution']
+
+        self._clip_info['resolution'] = f"{self.width}x{self.height}"
+        return self._clip_info['resolution']
 
     @property
     def start_time(self):
@@ -290,19 +326,6 @@ class Clip:
             str - Path to the video file
         """
         return self._file_path
-
-    @property
-    def resolution(self) -> str | None:
-        """
-        Resolution of the clip
-        :return:
-        """
-        # If clip resolution is already set, return it
-        if self._clip_info['resolution']:
-            return self._clip_info['resolution']
-
-        self._clip_info['resolution'] = f"{self.width}x{self.height}"
-        return self._clip_info['resolution']
 
     @property
     def video_duration(self) -> float:
@@ -878,12 +901,12 @@ class Clip:
         # Write the video to the file
         command = [FFMPEG_BINARY,
                    '-y',  # Overwrite output file if it exists
-                   '-f', 'rawvideo',  #
-                   '-vcodec', 'rawvideo',  #
-                   '-s', self.resolution,  # size of one frame
-                   '-pix_fmt', 'rgb24',  # pixel format
-                   '-r', '%d' % self.video_fps,  # frames per second
-                   '-i', '-',  # the input comes from a pipe
+                   '-f', 'rawvideo',                        # Indicates ??
+                   '-vcodec', 'rawvideo',                   # Video Codec
+                   '-s', self.resolution,                   # size of one frame
+                   '-pix_fmt', 'rgb24',                     # pixel format
+                   '-r', '%d' % self.fps,                   # frames per second
+                   '-i', '-',                               # the input comes from a pipe
                    '-an']                                   # tells FFMPEG not to expect any audio
 
         # If we have an audio stream and we are to write audio
