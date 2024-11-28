@@ -1,7 +1,7 @@
-from .Clip import Clip
+from .ClipBase import ClipBase
 import numpy
 
-class CompositeClip(Clip):
+class CompositeClip(ClipBase):
     """
     CompositeClip is a clip that is created from a composition of other clips
     """
@@ -51,7 +51,10 @@ class CompositeClip(Clip):
         blank_frame = (numpy.tile(clip_background_color, self.width * self.height).
                        reshape(self.height, self.width, 3).astype('uint8'))
         for frame_index in range(max_frames):
+            # We are starting a new frame, so reset the composited frame
             composited_frame = None
+
+            # Loop through the clips and composite this frame
             for clip_index in range(len(clips)):
                 # Get the clip frame, skip to the next clip if there is no frame for this clip
                 try:
@@ -66,10 +69,10 @@ class CompositeClip(Clip):
                 else:
                     composited_frame = numpy.where(clip_mask, clip_frame, blank_frame)
 
-                # Add it to our list of fames
-                composited_frames.append(composited_frame)
+            # Add it to our list of fames
+            composited_frames.append(composited_frame)
 
-        self.set_frames = composited_frames
+        self.set_frames(composited_frames)
 
     ####################
     # Property Methods #
