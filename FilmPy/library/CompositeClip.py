@@ -83,6 +83,26 @@ class CompositeClip(Clip):
         return self._clips
 
     @property
+    def fps(self):
+        """
+        Frames per second of the clip itself
+        """
+        # If frames per second is already set, return it
+        if self._clip_info['fps']:
+            return self._clip_info['fps']
+
+        # Default it to max fps from it's clips
+        max_fps = 0
+        for clip in self._clips:
+            if clip.fps > max_fps:
+                max_fps = clip.fps
+
+        self._clip_info['fps'] = max_fps
+
+        # return frames per second
+        return self._clip_info['fps']
+
+    @property
     def height(self):
         """
         Height of the clip itself
@@ -97,7 +117,6 @@ class CompositeClip(Clip):
             if clip.height > max_height:
                 max_height = clip.height
 
-        # Update the clip's height
         self._clip_info['height'] = max_height
 
         # Update the clip's resolution
