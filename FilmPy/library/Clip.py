@@ -4,10 +4,10 @@ import json
 import numpy
 import subprocess
 from .constants import FFMPEG_BINARY, FFPROBE_BINARY
-from .Clip import Clip
+from .ClipBase import ClipBase
 
 
-class VideoClip(Clip):
+class Clip(ClipBase):
     """
     Video Clip from a file
     """
