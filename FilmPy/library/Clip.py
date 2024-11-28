@@ -18,8 +18,8 @@ class Clip:
                  clip_start_time=0,
                  clip_width=None,
                  file_path=None,
-                 frames=None,
-                 height=None,
+                 clip_frames=None,
+                 clip_height=None,
                  include_audio=None,
                  mask_frames=None,
                  mask_behavior=MaskBehavior.LOOP_FRAMES,
@@ -31,7 +31,7 @@ class Clip:
         Initialize this Clip
 
         :param clip_width:
-        :param height:
+        :param clip_height:
         :param clip_start_time:
         :param clip_end_time:
         :param video_fps:
@@ -43,22 +43,23 @@ class Clip:
 
         # Clip specific attributes
         self._clip_audio = None                             # The audio data of the clip itself
-        self._clip_video = [] if not frames else frames     # The frames of the clip itself
+        self._clip_frames = [] if not clip_frames else clip_frames     # The frames of the clip itself
         self._clip_info = {'end_time': clip_end_time,  # End time in seconds
                            'fps': clip_fps,  # Frames per second for the clip
-                           'height': None,  # Height (in pixels) of the clip
+                           'height': None,                  # Height (in pixels) of the clip
                            'include_audio': include_audio,  # Should the audio be included when the clip is rendered
-                           'width': None,  # Width (in pixels) of the clip
-                           'resolution': None,  # Resolution string '{width}x{height}'
-                           'start_time': clip_start_time  # Start time in seconds
+                           'number_frames': None,           # Number of video frames in the clip
+                           'resolution': None,              # Resolution string '{width}x{height}'
+                           'start_time': clip_start_time,   # Start time in seconds
+                           'width': None,                   # Width (in pixels) of the clip
                            }
 
         # Video specific attributes
         self._video_info = {'end_time': video_end_time,
-                            'height': height,
+                            'height': clip_height,
                             'width': clip_width,
                             'fps': video_fps,
-                            'resolution': f"{clip_width}x{height}"}  # Video metadata
+                            'resolution': f"{clip_width}x{clip_height}"}  # Video metadata
         self._video_frames = [] if not video_frames else video_frames       # Frames that make up the video
 
         # File specific attributes
@@ -173,6 +174,30 @@ class Clip:
         self._clip_info['height'] = int(value)
 
     @property
+    def number_frames(self) -> int:
+        """
+        Number of frames in the clip
+        """
+        if self._clip_info['number_frames']:
+            return self._clip_info['number_frames']
+
+        # Default to number of frames in the video
+        self._clip_info['number_frames'] = self.video_number_frames
+
+        # Return the number of frames
+        return self._clip_info['number_frames']
+
+
+    @number_frames.setter
+    def number_frames(self, value):
+        """
+        Set the number of frames of the clip itself
+        :param value:
+        :return:
+        """
+        self._clip_info['number_frames'] = int(value)
+
+    @property
     def start_time(self):
         """
         Retrieves the start time of the clip
@@ -189,28 +214,6 @@ class Clip:
         :param value: Value of start time in seconds, must be able to be casted into a float
         """
         self._clip_info['start_time'] = float(start_time)
-
-    @property
-    def video_height(self) -> int:
-        """
-        Height of the underlying video associated to this clip
-
-        :raises ValueError: Video info has no height attribute
-        """
-        if 'height' not in self._video_info:
-            raise ValueError(f'{type(self).__name__}.video_height cannot be None.')
-        return self._video_info['height']
-
-    @property
-    def video_width(self) -> int:
-        """
-        Width of the underlying video associated to this clip
-
-        :raises ValueError: Video info has no width attribute
-        """
-        if 'width' not in self._video_info:
-            raise ValueError(f'{type(self).__name__}.video_width cannot be None')
-        return self._video_info['width']
 
     @property
     def width(self) -> int | None:
@@ -238,6 +241,44 @@ class Clip:
         """
         self._clip_info['width'] = int(value)
         self._clip_info['resolution'] = f"{self._clip_info['width']}x{self._clip_info['height']}"
+
+    #######################################
+    # Property Methods - Video Attributes #
+    #######################################
+    @property
+    def video_height(self) -> int:
+        """
+        Height of the underlying video associated to this clip
+
+        :raises ValueError: Video info has no height attribute
+        """
+        if 'height' not in self._video_info:
+            raise ValueError(f'{type(self).__name__}.video_height cannot be None.')
+        return self._video_info['height']
+
+    @property
+    def video_number_frames(self) -> int:
+        """
+        Number of frames in the underlying video associated to this clip
+
+        :raises ValueError:  Number of video frames is None (which should never be true)
+        """
+        # Ensure we have a valid value
+        if ('number_frames' not in self._video_info) or (self._video_info['number_frames'] is None):
+            raise ValueError(f'{type(self).__name__}.video_number_frames has not been set.')
+
+        return self._video_info['number_frames']
+
+    @property
+    def video_width(self) -> int:
+        """
+        Width of the underlying video associated to this clip
+
+        :raises ValueError: Video info has no width attribute
+        """
+        if 'width' not in self._video_info:
+            raise ValueError(f'{type(self).__name__}.video_width cannot be None.')
+        return self._video_info['width']
 
     @property
     def file_path(self):
@@ -544,8 +585,8 @@ class Clip:
             return self._mask['frames']
 
         # No mask exists, so we need to create one
-        if len(self._mask) == 0:
-            self._mask['frames'] = [np.tile(True, self.width * self.height).reshape(self.height, self.width)]
+        if not self._mask['frames']:
+            self._mask['frames'] = [np.tile((True,True,True), self.width * self.height).reshape(self.height, self.width, 3)]
 
         # If mask behavior is to loop, then create all the mask frames we need, and replace the mask frames we had
         if self._mask['behavior'] == MaskBehavior.LOOP_FRAMES.value:
@@ -553,6 +594,7 @@ class Clip:
             for frame_index in range(self.number_frames):
                 mask_frame_index = frame_index % len(self._mask['frames'])
                 looped_mask_frames.append(self._mask['frames'][mask_frame_index])
+
             self._mask['frames'] = looped_mask_frames
 
         # Update the mask initialized flag
@@ -567,14 +609,14 @@ class Clip:
         :return:
         """
         # Return the already created frames
-        if self._clip_video:
-            return self._clip_video
+        if self._clip_frames:
+            return self._clip_frames
 
         # No frames yet exist, copy the video data
         # TODO: respect clip start, end, etc
-        self._clip_video = self.get_video_frames()
+        self._clip_frames = self.get_video_frames()
 
-        return self._clip_video
+        return self._clip_frames
 
     def grayscale(self):
         """
@@ -795,7 +837,7 @@ class Clip:
         if not isinstance(value, list):
             raise ValueError(f"{type(self).__name__}.clip_frames must be a list of numpy.array objects")
 
-        self._clip_video = value
+        self._clip_frames = value
 
     def write_video_file(self,
                          file_path,
