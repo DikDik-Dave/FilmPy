@@ -1,4 +1,6 @@
 from .Clip import Clip
 from .ColorClip import ColorClip
+from .ImageClip import ImageClip
 from .Sequence import Sequence
-from .VideoFileClip import VideoFileClip
+from .TextClip import TextClip
+from .VideoClip import VideoClip
