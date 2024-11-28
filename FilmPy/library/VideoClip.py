@@ -3,7 +3,7 @@ from ffmpeg import FFmpeg
 import json
 import numpy
 import subprocess
-from .constants import FFMPEG_BINARY
+from .constants import FFMPEG_BINARY, FFPROBE_BINARY
 from .Clip import Clip
 
 
@@ -12,37 +12,37 @@ class VideoClip(Clip):
     Video Clip from a file
     """
     def __init__(self, file_path=None,
-                 frames=None,
-                 start_time=0,
-                 end_time=None,
-                 include_audio=True):
+                 clip_frames=None,
+                 clip_start_time=0,
+                 clip_end_time=None,
+                 clip_include_audio=True):
         """
         Initialize a VideoClip from either a file or via direct frame data
 
         :param file_path: path to the video file associated with this clip
-        :param start_time: When does the clip start
-        :param end_time: When does the clip end
-        :param include_audio: Should the audio be written for this clip
+        :param clip_start_time: When does the clip start
+        :param clip_end_time: When does the clip end
+        :param clip_include_audio: Should the audio be written for this clip
         """
         # Check to make sure we did not recieve potentially conflicting inputs
-        if frames and file_path:
+        if clip_frames and file_path:
             msg = (f" {type(self).__name__} - Conflicting input received. "
                    f"Either provide frames or video_path, not both.")
             raise ValueError(msg)
-        elif (not frames) and (not file_path):
+        elif (not clip_frames) and (not file_path):
             msg = (f" {type(self).__name__} - Invalid input received. "
                    f"Either provide frames or video_path.")
             raise ValueError(msg)
 
         # Initialize Clip, we will set the frame_width, frame_height, and video_fps values
         # after we have processed the metadata for this clip
-        super().__init__(width=None, height=None, start_time=start_time,
-                         end_time=end_time, video_fps=None, include_audio=include_audio,
-                         frames=frames, file_path=file_path)
+        super().__init__(clip_width=None, clip_height=None, clip_start_time=clip_start_time,
+                         clip_end_time=clip_end_time, video_fps=None, clip_include_audio=clip_include_audio,
+                         clip_frames=clip_frames, file_path=file_path)
 
         # If we have a video
         if file_path:
-            self._set_video_info(file_path, end_time)
+            self._set_video_info(file_path, clip_end_time)
 
 
     ###################
@@ -62,11 +62,24 @@ class VideoClip(Clip):
         )
 
         self._media = json.loads(ffprobe.execute())
-        self._video_info = self._media['streams'][0]
+        self._video_info.update(self._media['streams'][0])
 
+        # If we have audio, load its audio information
+        if len(self._media['streams']) > 1:
+            self._audio_info = self._media['streams'][1]
+            self._audio_info['sample_rate'] = int(self._audio_info['sample_rate'])
 
-        self._audio_info = self._media['streams'][1]
-        self._audio_info['sample_rate'] = int(self._audio_info['sample_rate'])
+        # Get the number of frames for the video
+        ffprobe_command = [FFPROBE_BINARY,
+                           '-v', 'error',
+                           '-select_streams', 'v:0',
+                           '-count_frames',
+                           '-show_entries',
+                           'stream=nb_read_frames',
+                           '-of', 'csv=p=0',
+                           video_path]
+        completed_process = subprocess.run(ffprobe_command, capture_output=True)
+        self._video_info['number_frames'] = int(completed_process.stdout)
 
         # Call ffmpeg to get additional information about the file
         ffmpeg_info_command = [FFMPEG_BINARY, "-hide_banner", "-i", video_path]
@@ -77,7 +90,7 @@ class VideoClip(Clip):
 
                 # Process the duration
                 hours, minutes, seconds = duration.strip(b'Duration: ').split(b':')
-                self.video_duration = (int(hours) * 60 * 60) + (int(minutes) * 60) + float(seconds)
+                self._video_info['duration'] = (int(hours) * 60 * 60) + (int(minutes) * 60) + float(seconds)
 
                 # Process video start
                 self.video_start = float(start.split(b':')[1])
@@ -94,22 +107,13 @@ class VideoClip(Clip):
                 value_start = line[:value_end].rfind(b', ')
                 self._video_info['tbr'] = float(line[value_start + 2:value_end])
             elif (b'Stream #0' in line) and (b'Audio:' in line):
-                # print(line)
                 pass
-
-
-        self._video_file_path = video_path
 
         # Set video stream attributes
         self._video_info['duration'] = float(self._video_info['duration'])
         self._video_info['height'] = int(self._video_info['height'])
         self._video_info['resolution'] = f"{self._video_info['width']}x{self._video_info['height']}"
         self._video_info['width'] = int(self._video_info['width'])
-
-        # If no end_time was specified set it to be the video's duration
-        if not end_time:
-            self._end_time = self.video_duration
-
 
     ##################
     # Public Methods #
@@ -126,7 +130,7 @@ class VideoClip(Clip):
 
         # Call ffmpeg and pipe it's output
         command = [FFMPEG_BINARY,
-                   '-i', self._video_file_path,
+                   '-i', self._file_path,
                    '-f', 'image2pipe',
                    '-pix_fmt', 'rgb24',
                    '-vcodec', 'rawvideo',
