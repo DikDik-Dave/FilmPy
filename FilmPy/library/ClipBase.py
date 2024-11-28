@@ -1,12 +1,13 @@
 import subprocess
 import os
+from logging import getLogger
 from subprocess import DEVNULL, PIPE
 
 from PIL import Image
 from .constants import *
 import numpy as np
 
-class Clip:
+class ClipBase:
     """
     Base class for all clips.
     """
@@ -20,7 +21,8 @@ class Clip:
                  file_path=None,
                  clip_frames=None,
                  clip_height=None,
-                 include_audio=None,
+                 clip_include_audio=None,
+                 clip_pixel_format='yuv420p',
                  mask_frames=None,
                  mask_behavior=MaskBehavior.LOOP_FRAMES,
                  video_end_time=None,
@@ -36,22 +38,26 @@ class Clip:
         :param clip_end_time:
         :param video_fps:
         """
+        # Ensure the clip pixel format is valid
+        if clip_pixel_format not in PIXEL_FORMATS.keys():
+            raise ValueError(f"'{clip_pixel_format}' is not a valid value for clip_pixel_format.")
 
         # Audio Specific Attributes
         self._audio_info = {}               # Audio metadata
         self._audio_frames = audio_frames   # Primary Audio Frame Data
 
         # Clip specific attributes
-        self._clip_audio = None                             # The audio data of the clip itself
-        self._clip_frames = [] if not clip_frames else clip_frames     # The frames of the clip itself
-        self._clip_info = {'end_time': clip_end_time,  # End time in seconds
-                           'fps': clip_fps,                 # Frames per second for the clip
-                           'height': None,                  # Height (in pixels) of the clip
-                           'include_audio': include_audio,  # Should the audio be included when the clip is rendered
-                           'number_frames': None,           # Number of video frames in the clip
-                           'resolution': None,              # Resolution string '{width}x{height}'
-                           'start_time': clip_start_time,   # Start time in seconds
-                           'width': None,                   # Width (in pixels) of the clip
+        self._clip_audio = None                                         # The audio data of the clip itself
+        self._clip_frames = [] if not clip_frames else clip_frames      # The frames of the clip itself
+        self._clip_info = {'end_time': clip_end_time,                   # End time in seconds
+                           'fps': clip_fps,                             # Frames per second for the clip
+                           'height': None,                              # Height (in pixels) of the clip
+                           'include_audio': clip_include_audio,         # Should the audio be included when rendered
+                           'number_frames': None,                       # Number of video frames in the clip
+                           'pixel_format': clip_pixel_format,           # Pixel Format
+                           'resolution': None,                          # Resolution string '{width}x{height}'
+                           'start_time': clip_start_time,               # Start time in seconds
+                           'width': None,                               # Width (in pixels) of the clip
                            }
 
         # Video specific attributes
@@ -59,7 +65,7 @@ class Clip:
                             'height': clip_height,
                             'width': clip_width,
                             'fps': video_fps,
-                            'resolution': f"{clip_width}x{clip_height}"}  # Video metadata
+                            'resolution': f"{clip_width}x{clip_height}"}    # Video metadata
         self._video_frames = [] if not video_frames else video_frames       # Frames that make up the video
 
         # File specific attributes
@@ -221,6 +227,13 @@ class Clip:
         self._clip_info['number_frames'] = int(value)
 
     @property
+    def pixel_format(self):
+        """
+        Pixel format of the clip itself
+        """
+        return self._clip_info['pixel_format']
+
+    @property
     def resolution(self) -> str | None:
         """
         Resolution of the clip
@@ -304,6 +317,13 @@ class Clip:
             raise ValueError(f'{type(self).__name__}.video_number_frames has not been set.')
 
         return self._video_info['number_frames']
+
+    @property
+    def video_pixel_format(self) -> str:
+        """
+        Pixel format of the underlying video
+        """
+        return self._video_info['pix_fmt']
 
     @property
     def video_width(self) -> int:
@@ -437,7 +457,6 @@ class Clip:
         return self
 
     def audio_fade_out(self, duration):
-        print(self._audio_info)
         # end_frame = duration
         pass
 
@@ -561,7 +580,6 @@ class Clip:
 
         # Enable method chaining
         return self
-
 
     def get_audio_frames(self,
                          file_name,
@@ -875,6 +893,8 @@ class Clip:
         :param audio_codec: Audio Codec to use
         :param file_video_codec: Video Codec to use when writing the file
         """
+        logger = getLogger()
+        print(__name__.split('.')[0])
         # Get filename and extension from the file path
         file_name, ext = os.path.splitext(os.path.basename(file_path))
         ext = ext[1:].lower()
@@ -946,9 +966,9 @@ class Clip:
         command.extend([
             '-vcodec', file_video_codec,
             '-preset', 'medium',
-            '-pix_fmt', self._video_info['pix_fmt'],
+            '-pix_fmt', self.pixel_format,
             file_path])
-
+        print(command)
         # Write all the video frame data to the PIPE's standard input
         process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stdin=subprocess.PIPE,  bufsize=10 ** 8)
         for frame in self.get_frames():
