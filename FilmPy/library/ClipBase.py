@@ -22,6 +22,7 @@ class ClipBase:
                  clip_frames=None,
                  clip_height=None,
                  clip_include_audio=None,
+                 clip_position=(0,0),
                  clip_pixel_format='yuv420p',
                  mask_frames=None,
                  mask_behavior=MaskBehavior.LOOP_FRAMES,
@@ -54,6 +55,8 @@ class ClipBase:
                            'height': None,                              # Height (in pixels) of the clip
                            'include_audio': clip_include_audio,         # Should the audio be included when rendered
                            'number_frames': None,                       # Number of video frames in the clip
+                           'position_x': int(clip_position[0]),         # x coordindate for the clip
+                           'position_y': int(clip_position[1]),         # y coordinate for the clip
                            'pixel_format': clip_pixel_format,           # Pixel Format
                            'resolution': None,                          # Resolution string '{width}x{height}'
                            'start_time': clip_start_time,               # Start time in seconds
@@ -234,6 +237,22 @@ class ClipBase:
         return self._clip_info['pixel_format']
 
     @property
+    def position(self) -> tuple:
+        """
+        (x,y) coordinates for the clip (only used if the clip is composited)
+        """
+        return (self._clip_info['position_x'], self._clip_info['position_y'])
+
+    @position.setter
+    def position(self, value):
+        """
+        Set the (x,y) coordinates for the clip
+        :param value:
+        """
+        self.x = value[0]
+        self.y = value[1]
+
+    @property
     def resolution(self) -> str | None:
         """
         Resolution of the clip
@@ -290,6 +309,36 @@ class ClipBase:
         """
         self._clip_info['width'] = int(value)
         self._clip_info['resolution'] = f"{self._clip_info['width']}x{self._clip_info['height']}"
+
+    @property
+    def x(self):
+        """
+        x coordinate of the clip itself
+        """
+        return self._clip_info['position_x']
+
+    @x.setter
+    def x(self, value):
+        """
+        Set the x coordinate
+        :param value:
+        """
+        self._clip_info['position_x'] = int(value)
+
+    @property
+    def y(self):
+        """
+        y coordinate of the clip itself
+        """
+        return self._clip_info['position_x']
+
+    @y.setter
+    def y(self, value):
+        """
+        Set the y coordinate
+        :param value:
+        """
+        self._clip_info['position_y'] = int(value)
 
     #######################################
     # Property Methods - Video Attributes #
