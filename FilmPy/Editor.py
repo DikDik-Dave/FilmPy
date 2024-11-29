@@ -1,8 +1,12 @@
 import os
 
+from logging import getLogger, INFO, StreamHandler, FileHandler, Formatter
+
 from FilmPy.library import *
-from FilmPy.library.CompositeClip import CompositeClip
+from FilmPy.library.clips.CompositeClip import CompositeClip
 from FilmPy.library.constants import *
+from development import formatter
+
 
 class Editor:
     """
@@ -74,7 +78,7 @@ class Editor:
         return TextClip(*args, **kwargs)
 
     @classmethod
-    def video_clip(cls, *args, **kwargs):
+    def clip(cls, *args, **kwargs):
         """
         Instantiate a VideoClip object
         Can be instantiated via the following inputs
@@ -87,10 +91,10 @@ class Editor:
         if len(args) == 1:
             kwargs.update({'file_path':args[0]})
 
-        return VideoClip(**kwargs)
+        return Clip(**kwargs)
 
     @classmethod
-    def video_clips(cls, *args, **kwargs):
+    def clips(cls, *args, **kwargs):
         """
         Instantiate multiple video clips, useful when you need multiple versions of the same clip
         :param args:
@@ -110,7 +114,7 @@ class Editor:
         objects = []
 
         for _ in range(count):
-            objects.append(VideoClip(**kwargs))
+            objects.append(Clip(**kwargs))
 
         return objects
 
@@ -147,3 +151,42 @@ class Editor:
         :return: Sequence - The clips combined into a single sequence
         """
         return Sequence(clips)
+
+    @classmethod
+    def configure_logging(cls,
+                          log_level:int=INFO,
+                          stream_format:str='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                          file_format:str=None,
+                          file_path:str=None):
+        """
+        Configure the logging for the FilmPy package itself.
+        Default behavior is to stream info level and above logs but not write them to disk
+
+        :param file_path:
+        :param file_format: Format for the file handler, if set to None, no file handler will be added
+        :param log_level: Python logging level
+        :param stream_format: Format for the stream handler, if set to None, no stream handler will be added
+        :return:
+        """
+        logger = getLogger(__name__.split('.'[0]))
+
+        # Set the log level to the requested level
+        logger.setLevel(log_level)
+
+        # Attach the stream handler as needed
+        if stream_format:
+            stream_handler = StreamHandler()
+            handler_formatter = Formatter(stream_format)
+            stream_handler.setFormatter(handler_formatter)
+            logger.addHandler(stream_handler)
+
+        # No file path was provided, set it to the default
+        if not file_path:
+            file_path = LOG_FILENAME
+
+        # Attach the log handler as needed
+        if file_format:
+            file_handler = FileHandler(file_path)
+            handler_formatter = Formatter(file_format)
+            file_handler.setFormatter(handler_formatter)
+            logger.addHandler(file_handler)
