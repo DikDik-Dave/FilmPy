@@ -5,12 +5,12 @@ Its goal is to enable fully video and audio editing.
 ## Main Functionality
 ### Using FilmPy you will be able to
 
-|  Audio Functionality                                   |  Image & Video Functionality                           | Editing           |
+|  Audio                                   |  Image & Video                           | Editing           |
 | :----------------------------------------------------- | :----------------------------------------------------- | :---------------- |
 | Decrease the volume                                    | Add borders (margin) to the footage                    | Add static image overlays to a video clip [NOT YET]                  |
 | Increase the volume    | Mirror footage horizontally                            | Concatenate clips |
 | Fade Ins                                                       | Mirror footage vertically                              | Save a single image from a video file                  |
-| Fade Outs [NOT YET] || Find installed fonts (Windows Only) |
+| Fade Outs [NOT YET] |Gamma Correction | Find installed fonts (Windows Only) |
 |  | 
 |                  | Convert footage to grayscale           | Resize the footage using various resampling methods |
 | Mirror horizontally clips, images, and clip sequences           | Reverse footage    ||
