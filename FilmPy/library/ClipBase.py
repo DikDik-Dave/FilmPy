@@ -506,8 +506,34 @@ class ClipBase:
         return self
 
     def audio_fade_out(self, duration):
-        # end_frame = duration
-        pass
+        """
+        Apply a gradual decrease to the level of the audio signal
+
+        :param algorithm: Type of audio fade in to implement,
+        :param duration: Duration, in seconds, that the fade in will last for
+
+        :return self: This object, to allow for method chaining
+        """
+
+        # Get the audio frames
+        audio_frames = self.get_audio_frames(self.file_path)
+
+        # Get the starting frame for the audio fade out
+        start_frame = int(self.audio_sample_rate * duration)
+
+        # Generate the multipliers for affected audio frames
+        multipliers = [((index / self.audio_sample_rate) / duration) for index in range(start_frame, self.number_frames)]
+
+        # Update the audio frames in quest
+        for audio_channel in range(audio_frames.shape[1]):
+            audio_frames[start_frame:,audio_channel] = audio_frames[start_frame:,audio_channel] * multipliers
+
+        # Replace the audio frames with the modified frames
+        self.set_audio_frames(audio_frames)
+
+        # Allow for method chaining
+        return self
+
 
     def audio_normalize(self):
         """
@@ -630,6 +656,52 @@ class ClipBase:
         # Enable method chaining
         return self
 
+    def fade_in(self,
+                duration,
+                fade_in_color=(0,0,0)):
+        """
+        Fade in from fade in color to the footage over the duration color
+
+        :param duration:
+        :param fade_in_color:
+        """
+        pass
+
+    def fade_out(self,
+                 duration,
+                 fade_out_color=(0,0,0)):
+        """
+        Fade out from the footage to the fade out color over the duration
+        :param duration:
+        :param fade_out_color:
+        :return:
+        """
+        pass
+
+    def gamma_correction(self,
+                         gamma:float):
+        """
+        Gamma correction is a nonlinear operation used to encode and decode luminance values
+
+        :param gamma: gamma value to use
+        :return self: Enable method chaining
+        """
+        # Get a logger
+        logger = getLogger(__name__)
+
+        # Update frames
+        logger.info(f"Gamma correcting footage (gamma='{gamma}')")
+        altered_frames = []
+        for frame in self.get_frames():
+            new_frame = (255 * (1.0 * frame / 255) ** gamma).astype('uint8')
+            altered_frames.append(new_frame)
+
+        self.set_frames(altered_frames)
+        logger.info(f"Finished gamma correcting footage (gamma='{gamma}')")
+
+        # Enable method chaining
+        return self
+
     def get_audio_frames(self,
                          file_name,
                          fps=44100,
@@ -723,6 +795,7 @@ class ClipBase:
         # Replace the clip frames with the now rotated frames
         self.set_frames(altered_frames)
 
+        # Return this object to enable method chaining
         return self
 
     def mirror_x(self):
