@@ -18,6 +18,9 @@ VIDEO_CODECS = {'mp4': ["libx264", "libmpeg4", "aac"],
                 'webm': ["libvorbis"]
                 }
 
+# Default log file name to use
+LOG_FILENAME = f"{__name__.split('.')[0]}.log"
+
 # ffmpeg pixel formats
 PIXEL_FORMATS = {
     'yuv420p': { 'bitstream': False,
@@ -124,7 +127,28 @@ PIXEL_FORMATS = {
                  'paletted': False,
                  'hardware_accelerated': False,
                  'nb_components': 3,
-                 'bits_per_pixel': 24}
+                 'bits_per_pixel': 24},
+    'uyvy422': {'bitstream': False,
+                 'input': True,
+                 'output': True,
+                 'paletted': False,
+                 'hardware_accelerated': False,
+                 'nb_components': 3,
+                 'bits_per_pixel': 16},
+    'uyyvyy411': {'bitstream': False,
+                'input': False,
+                'output': False,
+                'paletted': False,
+                'hardware_accelerated': False,
+                'nb_components': 3,
+                'bits_per_pixel': 12},
+    'bgr8': {'bitstream': True,
+                  'input': False,
+                  'output': True,
+                  'paletted': False,
+                  'hardware_accelerated': False,
+                  'nb_components': 3,
+                  'bits_per_pixel': 8}
 }
 
 #TODO - Port and remove entries below
@@ -137,9 +161,7 @@ I.... = Supported Input  format for conversion
 ....B = Bitstream format
 FLAGS NAME            NB_COMPONENTS BITS_PER_PIXEL
 -----
-IO... uyvy422                3            16
-..... uyyvyy411              3            12
-IO... bgr8                   3             8
+
 .O..B bgr4                   3             4
 IO... bgr4_byte              3             4
 IO... rgb8                   3             8
