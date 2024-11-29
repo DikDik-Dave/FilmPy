@@ -3,8 +3,8 @@ from ffmpeg import FFmpeg
 import json
 import numpy
 import subprocess
-from .constants import FFMPEG_BINARY, FFPROBE_BINARY
-from .ClipBase import ClipBase
+from FilmPy.constants import FFMPEG_BINARY, FFPROBE_BINARY
+from FilmPy.clips.ClipBase import ClipBase
 
 
 class Clip(ClipBase):

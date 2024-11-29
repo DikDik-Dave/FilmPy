@@ -1,19 +1,19 @@
-from FilmPy.library.ImageClip import ImageClip
+from FilmPy.clips.ImageClip import ImageClip
 import numpy
 
 class ColorClip(ImageClip):
-    def __init__(self, rgb_color, width, height, video_fps, end_time):
+    def __init__(self, rgb_color, clip_width, clip_height, video_fps, clip_end_time):
         """
         Video Clip of just a single color
 
         :param rgb_color: (R,G,B) tuple of the color to be displayed
-        :param width: Frame width
-        :param height: Frame Height
-        :param end_time: End Time (Duration) of the clip in seconds
+        :param clip_width: Frame width
+        :param clip_height: Frame Height
+        :param clip_end_time: End Time (Duration) of the clip in seconds
         """
         # Instantiate ImageClip
-        self._frame = numpy.tile(rgb_color, width * height).reshape(height, width, 3).astype('uint8')
-        super().__init__(frame_data=self._frame, end_time=end_time, video_fps=video_fps)
+        self._frame = numpy.tile(rgb_color, clip_width * clip_height).reshape(clip_height, clip_width, 3).astype('uint8')
+        super().__init__(video_frames=self._frame, clip_end_time=clip_end_time, video_fps=video_fps)
 
     def get_video_frames(self):
         """

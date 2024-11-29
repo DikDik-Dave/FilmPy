@@ -1,4 +1,4 @@
-from .ClipBase import ClipBase
+from FilmPy.clips.ClipBase import ClipBase
 import numpy
 
 class CompositeClip(ClipBase):

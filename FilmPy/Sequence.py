@@ -1,15 +1,18 @@
 import os
 import subprocess
-from .constants import AUDIO_CODECS, FFMPEG_BINARY, VIDEO_CODECS
+from FilmPy.constants import AUDIO_CODECS, FFMPEG_BINARY, VIDEO_CODECS
 
 class Sequence:
     """
     Sequence of clips, aka the film
     """
-    def __init__(self, clips=None):
+    def __init__(self,
+                 clips:list=None,
+                 transitions:dict=None):
         """
-
-        :param clips: Clips in the sequence
+        Creates a sequence of clips (aka concatenation)
+        :param clips: Clips that comprise the sequence
+        :param transitions: A dictionary (int -> Transition objects) of clip transitions.
         """
         if clips:
             self._clips = clips
@@ -109,7 +112,7 @@ class Sequence:
             for clip in self._clips:
                 # If the clip has audio and the audio should be written add it to the array
                 # of audio data we will write
-                if clip.has_audio and clip.write_audio:
+                if clip.has_audio and clip.include_audio:
                     audio_data.extend(clip.get_audio_frames(clip.file_path, fps, number_bytes, number_channels))
 
             temp_audio_file_name = f"{file_name}_wvf_snd.tmp.{audio_extension}"

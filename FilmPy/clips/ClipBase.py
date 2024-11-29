@@ -4,7 +4,7 @@ from logging import getLogger
 from subprocess import DEVNULL, PIPE
 
 from PIL import Image
-from .constants import *
+from FilmPy.constants import *
 import numpy as np
 
 class ClipBase:

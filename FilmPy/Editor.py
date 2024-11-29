@@ -2,10 +2,8 @@ import os
 
 from logging import getLogger, INFO, StreamHandler, FileHandler, Formatter
 
-from FilmPy.library import *
-from FilmPy.library.clips.CompositeClip import CompositeClip
-from FilmPy.library.constants import *
-from development import formatter
+from FilmPy.clips.CompositeClip import CompositeClip
+from FilmPy.constants import *
 
 
 class Editor:

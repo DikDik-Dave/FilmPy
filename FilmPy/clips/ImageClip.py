@@ -1,24 +1,23 @@
 from pydoc import classname
 from PIL import Image
-from PIL.ExifTags import TAGS
 import numpy
 
-from .Clip import Clip
-class ImageClip(Clip):
+from FilmPy.clips.ClipBase import ClipBase
+class ImageClip(ClipBase):
     """
     An image clip is a clip comprised of a single image
     """
     def __init__(self,
                  image_path:str=None,  # A path to an image file
-                 video_frames:[]=None, # An array of video frames that comprise this Image
-                 start_time:float=0,
-                 end_time=None,
+                 video_frames:[]=None,  # An array of video frames that comprise this Image
+                 clip_start_time:float=0,
+                 clip_end_time=None,
                  video_fps=None):
         """
         :param image_path: Path to an image file
         :param video_frames: Image Data (e.g. a single video frame)
-        :param start_time: Start of time of the clip in seconds
-        :param end_time: End time of the clip in seconds
+        :param clip_start_time: Start of time of the clip in seconds
+        :param clip_end_time: End time of the clip in seconds
         :param video_fps:
 
         :raises:
@@ -59,13 +58,13 @@ class ImageClip(Clip):
             #     data = exifdata.get(tag_id).decode("utf-16")
             #     print(f"{tag:25}: {data}")
 
-        super().__init__(frames=video_frames,  # Frames for this clip
-                         start_time=start_time,
-                         end_time=end_time,
+        super().__init__(clip_frames=video_frames,  # Frames for this clip
+                         clip_start_time=clip_start_time,
+                         clip_end_time=clip_end_time,
                          video_fps=video_fps,
-                         include_audio=False,
-                         width=frame_width,
-                         height=frame_height,
+                         clip_include_audio=False,
+                         clip_width=frame_width,
+                         clip_height=frame_height,
                          video_frames=video_frames)
 
 
