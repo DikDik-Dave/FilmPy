@@ -1,9 +1,11 @@
+import numpy as np
+from logging import getLogger
 from ffmpeg import FFmpeg
 
 import json
 import numpy
 import subprocess
-from FilmPy.constants import FFMPEG_BINARY, FFPROBE_BINARY
+from FilmPy.constants import FFMPEG_BINARY, FFPROBE_BINARY, PIXEL_FORMATS
 from FilmPy.clips.ClipBase import ClipBase
 
 
@@ -40,21 +42,24 @@ class Clip(ClipBase):
                          clip_end_time=clip_end_time, video_fps=None, clip_include_audio=clip_include_audio,
                          clip_frames=clip_frames, file_path=file_path)
 
-        # If we have a video
+        # If we the clip is associated to a file, load information about the file
         if file_path:
-            self._set_video_info(file_path, clip_end_time)
+            self._set_file_information(file_path, clip_end_time)
 
 
     ###################
     # Private Methods #
     ###################
-    def _set_video_info(self, video_path, end_time):
+    def _set_file_information(self, video_path, end_time):
         """
         Set the video information about video files
         :param video_path: Path to the video
         :param end_time: End time of the clip
         """
+        logger = getLogger(__name__)
+
         # Call ffprobe to get information about the file
+        logger.debug(f"Retrieving data from ffprobe")
         ffprobe = FFmpeg(executable="ffprobe").input(
             video_path,
             print_format="json",  # ffprobe will output the results in JSON format
@@ -62,7 +67,7 @@ class Clip(ClipBase):
         )
 
         self._media = json.loads(ffprobe.execute())
-        self._video_info.update(self._media['streams'][0])
+        self._video.update(self._media['streams'][0])
 
         # If we have audio, load its audio information
         if len(self._media['streams']) > 1:
@@ -70,6 +75,7 @@ class Clip(ClipBase):
             self._audio_info['sample_rate'] = int(self._audio_info['sample_rate'])
 
         # Get the number of frames for the video
+        logger.debug(f"Retrieving number_frames from ffprobe")
         ffprobe_command = [FFPROBE_BINARY,
                            '-v', 'error',
                            '-select_streams', 'v:0',
@@ -78,11 +84,14 @@ class Clip(ClipBase):
                            'stream=nb_read_frames',
                            '-of', 'csv=p=0',
                            video_path]
+
         completed_process = subprocess.run(ffprobe_command, capture_output=True)
-        self._video_info['number_frames'] = int(completed_process.stdout)
+        self._video['number_frames'] = int(completed_process.stdout)
 
         # Call ffmpeg to get additional information about the file
+
         ffmpeg_info_command = [FFMPEG_BINARY, "-hide_banner", "-i", video_path]
+        logger.debug(f'Calling ffmpeg "{' '.join(ffmpeg_info_command)}"')
         completed_process = subprocess.run(ffmpeg_info_command, capture_output=True)
         for line in completed_process.stderr.splitlines()[1:]:
             if b'Duration: ' in line:
@@ -90,7 +99,7 @@ class Clip(ClipBase):
 
                 # Process the duration
                 hours, minutes, seconds = duration.strip(b'Duration: ').split(b':')
-                self._video_info['duration'] = (int(hours) * 60 * 60) + (int(minutes) * 60) + float(seconds)
+                self._video['duration'] = (int(hours) * 60 * 60) + (int(minutes) * 60) + float(seconds)
 
                 # Process video start
                 self.video_start = float(start.split(b':')[1])
@@ -100,33 +109,34 @@ class Clip(ClipBase):
                 # Set the video_fps attribute
                 value_end = line.find(b' fps')
                 value_start = line[:value_end].rfind(b', ')
-                self._video_info['fps'] = float(line[value_start + 2:value_end])
+                self._video['fps'] = float(line[value_start + 2:value_end])
 
                 # Set the video_tbr attribute
                 value_end = line.find(b' tbr,')
                 value_start = line[:value_end].rfind(b', ')
-                self._video_info['tbr'] = float(line[value_start + 2:value_end])
+                self._video['tbr'] = float(line[value_start + 2:value_end])
             elif (b'Stream #0' in line) and (b'Audio:' in line):
                 pass
 
         # Set video stream attributes
-        self._video_info['duration'] = float(self._video_info['duration'])
-        self._video_info['height'] = int(self._video_info['height'])
-        self._video_info['resolution'] = f"{self._video_info['width']}x{self._video_info['height']}"
-        self._video_info['width'] = int(self._video_info['width'])
+        self._video['duration'] = float(self._video['duration'])
+        self._video['height'] = int(self._video['height'])
+        self._video['resolution'] = f"{self._video['width']}x{self._video['height']}"
+        self._video['width'] = int(self._video['width'])
 
     ##################
     # Public Methods #
     ##################
-    def get_video_frames(self):
+    def get_video_frames_list(self):
         """
         Get the video frames
         :return: List of frames
         """
+        logger = getLogger(__name__)
 
         # If we already loaded the frames, just return them
-        if self._video_frames:
-            return self._video_frames
+        if self._video_frames_list:
+            return self._video_frames_list
 
         # Call ffmpeg and pipe it's output
         command = [FFMPEG_BINARY,
@@ -137,17 +147,51 @@ class Clip(ClipBase):
                    '-']
 
         # Read the video data
+        logger.debug(f'Calling ffmpeg \"{' '.join(command)}\"')
         completed_process = subprocess.run(command, capture_output=True)
 
-        # Get all frames
-        frame_length = self._video_info['width'] * self._video_info['height'] * 3
+        # Get all frames - Old approach
+        frame_length = self._video['width'] * self._video['height'] * 3
         for i in range(0, len(completed_process.stdout), frame_length):
             frame = completed_process.stdout[i:i + frame_length]
-            frame = numpy.fromstring(frame, dtype='uint8').reshape((self._video_info['height'],
-                                                                    self._video_info['width'],
+            frame = numpy.fromstring(frame, dtype='uint8').reshape((self._video['height'],
+                                                                    self._video['width'],
                                                                     3))
 
             # Store the frame in our frames list
-            self._video_frames.append(frame)
+            self._video_frames_list.append(frame)
 
-        return self._video_frames
+        # Return the video frames
+        return self._video_frames_list
+
+    def get_video_frames(self) -> np.array:
+        """
+        Get the underlying video frames associated to this clip.
+
+        :return np.array: Array of size (# frames * frame height) x (frame width) x (pixel format number components)
+        """
+        logger = getLogger(__name__)
+
+        # If we have already loaded the frames, we can just return them
+        if self._video['frames']:
+            return self._video['frames']
+
+        # Load all the frame data into a single ndarray
+        number_components = PIXEL_FORMATS[self.processing_pixel_format]['nb_components']
+        ffmpeg_command = [FFMPEG_BINARY,
+                        '-i', self._file_path,
+                        '-f', 'image2pipe',
+                        '-pix_fmt', self.processing_pixel_format,
+                        '-vcodec', 'rawvideo',
+                        '-']
+
+        # Read the video data
+        logger.debug(f'Calling ffmpeg \"{' '.join(ffmpeg_command)}\"')
+        completed_process = subprocess.run(ffmpeg_command, capture_output=True)
+
+        height = self.video_number_frames * self.video_height
+        self._video['frames'] = (numpy.fromstring(completed_process.stdout, dtype='uint8')
+                                 .reshape(height, self.video_width, number_components))
+
+        # return the video frames
+        return self._video['frames']
