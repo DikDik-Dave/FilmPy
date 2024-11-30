@@ -656,6 +656,63 @@ class ClipBase:
         # Enable method chaining
         return self
 
+    def crop(self,
+             top_left_x:int=0,
+             top_left_y:int=0,
+             bottom_right_x:int=None,
+             bottom_right_y:int=None,
+             center_x:int=None,
+             center_y:int=None,
+             height:int=None,
+             width:int=None
+             ):
+        # Get a logger to, well uhm, log stuff
+        logger = getLogger(__name__)
+
+        # Calculate the top level & bottom right position of the area to be cropped
+        if width and top_left_x:
+            bottom_right_x = int(top_left_x + width)
+        elif width and bottom_right_x:
+            top_left_x = int(bottom_right_x - width)
+
+        if height and top_left_y and (not center_y):
+            bottom_right_y = int(top_left_y + height)
+        elif height and bottom_right_y and (not center_y):
+            top_left_y = int(bottom_right_y - height)
+
+        if center_x:
+            top_left_x = int(center_x - width / 2)
+            bottom_right_x = int(center_x + width / 2)
+
+        if center_y:
+            top_left_y = int(center_y - height / 2)
+            bottom_right_y = int(center_y + height / 2)
+
+        bottom_right_x = int(bottom_right_x or self.width)
+        bottom_right_y = int(bottom_right_y or self.height)
+
+        # Update the height and width of the clip now that we cropped the image
+        self.height = bottom_right_y - top_left_y
+        self.width = bottom_right_x - top_left_x
+
+        # Get the frames to be processed
+        frames = self.get_frames()
+
+        # Crop the frames
+        logger.debug(f"Cropping image from ({top_left_x},{top_left_y}) to ({bottom_right_x},{bottom_right_y})")
+        cropped_frames = []
+        for frame in frames:
+            cropped_frame = frame[top_left_y:bottom_right_y, top_left_x:bottom_right_x]
+            cropped_frames.append(cropped_frame)
+
+        logger.debug(f"{len(cropped_frames)} frames cropped")
+
+        # Replace the frames with the new frames
+        self.set_frames(cropped_frames)
+
+        # Enable method chaining
+        return self
+
     def fade_in(self,
                 duration,
                 fade_in_color=(0,0,0)):
