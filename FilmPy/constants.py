@@ -148,7 +148,49 @@ PIXEL_FORMATS = {
                   'paletted': False,
                   'hardware_accelerated': False,
                   'nb_components': 3,
-                  'bits_per_pixel': 8}
+                  'bits_per_pixel': 8},
+    'bgr4': {'bitstream': True,
+             'input': False,
+             'output': True,
+             'paletted': False,
+             'hardware_accelerated': False,
+             'nb_components': 3,
+             'bits_per_pixel': 4},
+    'bgr4_byte': {'bitstream': False,
+             'input': True,
+             'output': True,
+             'paletted': False,
+             'hardware_accelerated': False,
+             'nb_components': 3,
+             'bits_per_pixel': 4},
+    'rgba': {'bitstream': False,
+                  'input': True,
+                  'output': True,
+                  'paletted': False,
+                  'hardware_accelerated': False,
+                  'nb_components': 4,
+                  'bits_per_pixel': 32},
+    'rgb8': {'bitstream': False,
+             'input': True,
+             'output': True,
+             'paletted': False,
+             'hardware_accelerated': False,
+             'nb_components': 3,
+             'bits_per_pixel': 8},
+    'x2rgb10be': {'bitstream': False,
+             'input': False,
+             'output': False,
+             'paletted': False,
+             'hardware_accelerated': False,
+             'nb_components': 3,
+             'bits_per_pixel': 30},
+    'argb': {'bitstream': False,
+                  'input': True,
+                  'output': True,
+                  'paletted': False,
+                  'hardware_accelerated': False,
+                  'nb_components': 4,
+                  'bits_per_pixel': 32}
 }
 
 #TODO - Port and remove entries below
@@ -161,16 +203,10 @@ I.... = Supported Input  format for conversion
 ....B = Bitstream format
 FLAGS NAME            NB_COMPONENTS BITS_PER_PIXEL
 -----
-
-.O..B bgr4                   3             4
-IO... bgr4_byte              3             4
-IO... rgb8                   3             8
 .O..B rgb4                   3             4
 IO... rgb4_byte              3             4
 IO... nv12                   3            12
 IO... nv21                   3            12
-IO... argb                   4            32
-IO... rgba                   4            32
 IO... abgr                   4            32
 IO... bgra                   4            32
 IO... gray16be               1            16
@@ -341,7 +377,6 @@ IO... nv42                   3            24
 ..... y210be                 3            20
 I.... y210le                 3            20
 IO... x2rgb10le              3            30
-..... x2rgb10be              3            30
 '''
 
 # Legal values that govern how mask frame data will be interpreted
