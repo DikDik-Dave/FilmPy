@@ -4,6 +4,8 @@ from logging import getLogger
 from subprocess import DEVNULL, PIPE
 
 from PIL import Image
+from cryptography.utils import deprecated
+
 from FilmPy.constants import *
 import numpy as np
 
@@ -23,7 +25,8 @@ class ClipBase:
                  clip_height=None,
                  clip_include_audio=None,
                  clip_position=(0,0),
-                 clip_pixel_format='yuv420p',
+                 clip_processing_pixel_format='rgba',
+                 clip_pixel_format='yuv420p',  # Pixel for
                  mask_frames=None,
                  mask_behavior=MaskBehavior.LOOP_FRAMES,
                  video_end_time=None,
@@ -44,32 +47,36 @@ class ClipBase:
             raise ValueError(f"'{clip_pixel_format}' is not a valid value for clip_pixel_format.")
 
         # Audio Specific Attributes
-        self._audio_info = {}               # Audio metadata
+        self._audio = {}               # Audio metadata
         self._audio_frames = audio_frames   # Primary Audio Frame Data
 
         # Clip specific attributes
         self._clip_audio = None                                         # The audio data of the clip itself
         self._clip_frames = [] if not clip_frames else clip_frames      # The frames of the clip itself
-        self._clip_info = {'end_time': clip_end_time,                   # End time in seconds
-                           'fps': clip_fps,                             # Frames per second for the clip
-                           'height': None,                              # Height (in pixels) of the clip
-                           'include_audio': clip_include_audio,         # Should the audio be included when rendered
-                           'number_frames': None,                       # Number of video frames in the clip
-                           'position_x': int(clip_position[0]),         # x coordindate for the clip
-                           'position_y': int(clip_position[1]),         # y coordinate for the clip
-                           'pixel_format': clip_pixel_format,           # Pixel Format
-                           'resolution': None,                          # Resolution string '{width}x{height}'
-                           'start_time': clip_start_time,               # Start time in seconds
-                           'width': None,                               # Width (in pixels) of the clip
-                           }
+        self._clip = {'end_time': clip_end_time,                                    # End time in seconds
+                           'fps': clip_fps,                                         # Frames per second for the clip
+                           'height': None,                                          # Height (in pixels) of the clip
+                           'include_audio': clip_include_audio,                     # Should the audio be included when rendered
+                           'processing_pixel_format': clip_processing_pixel_format,  # Pixel format to use while video processing
+                           'number_frames': None,  # Number of video frames in the clip
+                           'position_x': int(clip_position[0]),  # x coordindate for the clip
+                           'position_y': int(clip_position[1]),  # y coordinate for the clip
+                           'pixel_format': clip_pixel_format,  # Pixel Format
+                           'resolution': None,  # Resolution string '{width}x{height}'
+                           'start_time': clip_start_time,  # Start time in seconds
+                           'width': None,  # Width (in pixels) of the clip
+                      }
 
         # Video specific attributes
-        self._video_info = {'end_time': video_end_time,
+        self._video = {'end_time': video_end_time,
+                            'fps': video_fps,
+                            'frames': video_frames,
                             'height': clip_height,
                             'width': clip_width,
-                            'fps': video_fps,
                             'resolution': f"{clip_width}x{clip_height}"}    # Video metadata
-        self._video_frames = [] if not video_frames else video_frames       # Frames that make up the video
+
+        #TODO - Remove _video_frames_list it is now considered deprecated
+        self._video_frames_list = [] if not video_frames else video_frames       # Frames that make up the video
 
         # File specific attributes
         self._file_path = file_path  # Path to whatever file is associated to this clip
@@ -101,7 +108,7 @@ class ClipBase:
         Number of audio channels for the audio
         :return:
         """
-        return self._audio_info['channels']
+        return self._audio['channels']
 
     @audio_channels.setter
     def audio_channels(self, value):
@@ -110,7 +117,7 @@ class ClipBase:
         :param value:
         :return:
         """
-        self._audio_info['channels'] = int(value)
+        self._audio['channels'] = int(value)
 
     @property
     def audio_sample_rate(self):
@@ -118,7 +125,7 @@ class ClipBase:
         Audio Sample Rate for the audio
         :return:
         """
-        return self._audio_info['sample_rate']
+        return self._audio['sample_rate']
 
     ######################################
     # Property Methods - Clip Attributes #
@@ -129,14 +136,14 @@ class ClipBase:
         End time of the clip in seconds
         """
         # If the end time for the clip has already been set, return it
-        if self._clip_info['end_time']:
-            return self._clip_info['end_time']
+        if self._clip['end_time']:
+            return self._clip['end_time']
 
         # Default the end_time of the clip to the video end time
         self.end_time = self.video_end_time
 
         # Return the end time of the clip
-        return self._clip_info['end_time']
+        return self._clip['end_time']
 
     @end_time.setter
     def end_time(self, value):
@@ -145,7 +152,7 @@ class ClipBase:
 
         :param value: End time of the clip in seconds
         """
-        self._clip_info['end_time'] = float(value)
+        self._clip['end_time'] = float(value)
 
     @property
     def fps(self):
@@ -153,14 +160,14 @@ class ClipBase:
         Frames per second of the clip itself
         """
         # If frames per second is already set, return it
-        if self._clip_info['fps']:
-            return self._clip_info['fps']
+        if self._clip['fps']:
+            return self._clip['fps']
 
         # Default it to video frames per second
-        self._clip_info['fps'] = self.video_fps
+        self._clip['fps'] = self.video_fps
 
         # return frames per second
-        return self._clip_info['fps']
+        return self._clip['fps']
 
     @fps.setter
     def fps(self, value):
@@ -168,7 +175,7 @@ class ClipBase:
         Set frames per second for the clip itself
         :param value:
         """
-        self._clip_info['fps'] = float(fps)
+        self._clip['fps'] = float(value)
 
     @property
     def has_audio(self):
@@ -177,7 +184,7 @@ class ClipBase:
 
         :return: True if the clip has audio data, False otherwise
         """
-        return bool(self._audio_info)
+        return bool(self._audio)
 
     @property
     def height(self) -> int:
@@ -187,14 +194,14 @@ class ClipBase:
         :return height: height of the clip
         """
         # If height has already been set, return it
-        if ('height' in self._clip_info) and self._clip_info['height']:
-            return self._clip_info['height']
+        if ('height' in self._clip) and self._clip['height']:
+            return self._clip['height']
 
         # Default height to the video's height
-        self._clip_info['height'] = self.video_height
+        self._clip['height'] = self.video_height
 
         # Return height
-        return self._clip_info['height']
+        return self._clip['height']
 
     @height.setter
     def height(self, value):
@@ -203,21 +210,29 @@ class ClipBase:
 
         :param value: height value
         """
-        self._clip_info['height'] = int(value)
+        self._clip['height'] = int(value)
+
+    @property
+    def processing_pixel_format(self):
+        """
+        Pixel format to be used for video processing
+        :return:
+        """
+        return self._clip['processing_pixel_format']
 
     @property
     def number_frames(self) -> int:
         """
         Number of frames in the clip
         """
-        if self._clip_info['number_frames']:
-            return self._clip_info['number_frames']
+        if self._clip['number_frames']:
+            return self._clip['number_frames']
 
         # Default to number of frames in the video
-        self._clip_info['number_frames'] = self.video_number_frames
+        self._clip['number_frames'] = self.video_number_frames
 
         # Return the number of frames
-        return self._clip_info['number_frames']
+        return self._clip['number_frames']
 
 
     @number_frames.setter
@@ -227,21 +242,21 @@ class ClipBase:
         :param value:
         :return:
         """
-        self._clip_info['number_frames'] = int(value)
+        self._clip['number_frames'] = int(value)
 
     @property
     def pixel_format(self):
         """
         Pixel format of the clip itself
         """
-        return self._clip_info['pixel_format']
+        return self._clip['pixel_format']
 
     @property
     def position(self) -> tuple:
         """
         (x,y) coordinates for the clip (only used if the clip is composited)
         """
-        return self._clip_info['position_x'], self._clip_info['position_y']
+        return self._clip['position_x'], self._clip['position_y']
 
     @position.setter
     def position(self, value):
@@ -259,11 +274,11 @@ class ClipBase:
         :return:
         """
         # If clip resolution is already set, return it
-        if self._clip_info['resolution']:
-            return self._clip_info['resolution']
+        if self._clip['resolution']:
+            return self._clip['resolution']
 
-        self._clip_info['resolution'] = f"{self.width}x{self.height}"
-        return self._clip_info['resolution']
+        self._clip['resolution'] = f"{self.width}x{self.height}"
+        return self._clip['resolution']
 
     @property
     def start_time(self):
@@ -272,16 +287,16 @@ class ClipBase:
 
         :return: start time of the clip in seconds
         """
-        return self._clip_info['start_time']
+        return self._clip['start_time']
 
     @start_time.setter
     def start_time(self, value):
         """
         Set the start time for the clip
 
-        :param value: Value of start time in seconds, must be able to be casted into a float
+        :param value: Value of start time in seconds, must be able to be cast into a float
         """
-        self._clip_info['start_time'] = float(start_time)
+        self._clip['start_time'] = float(value)
 
     @property
     def width(self) -> int | None:
@@ -290,15 +305,15 @@ class ClipBase:
         :return:
         """
         # If width has already been set, return it
-        if ('width' in self._clip_info) and self._clip_info['width']:
-            return self._clip_info['width']
+        if ('width' in self._clip) and self._clip['width']:
+            return self._clip['width']
 
         # Default width if not set to the video's width
-        self._clip_info['width'] = self.video_width
+        self._clip['width'] = self.video_width
 
         # Update the clip's resolution
-        self._clip_info['resolution'] = f"{self._clip_info['width']}x{self._clip_info['height']}"
-        return self._clip_info['width']
+        self._clip['resolution'] = f"{self._clip['width']}x{self._clip['height']}"
+        return self._clip['width']
 
     @width.setter
     def width(self, value):
@@ -307,15 +322,15 @@ class ClipBase:
         :param value:
         :return:
         """
-        self._clip_info['width'] = int(value)
-        self._clip_info['resolution'] = f"{self._clip_info['width']}x{self._clip_info['height']}"
+        self._clip['width'] = int(value)
+        self._clip['resolution'] = f"{self._clip['width']}x{self._clip['height']}"
 
     @property
     def x(self):
         """
         x coordinate of the clip itself
         """
-        return self._clip_info['position_x']
+        return self._clip['position_x']
 
     @x.setter
     def x(self, value):
@@ -323,14 +338,14 @@ class ClipBase:
         Set the x coordinate
         :param value:
         """
-        self._clip_info['position_x'] = int(value)
+        self._clip['position_x'] = int(value)
 
     @property
     def y(self):
         """
         y coordinate of the clip itself
         """
-        return self._clip_info['position_x']
+        return self._clip['position_x']
 
     @y.setter
     def y(self, value):
@@ -338,7 +353,7 @@ class ClipBase:
         Set the y coordinate
         :param value:
         """
-        self._clip_info['position_y'] = int(value)
+        self._clip['position_y'] = int(value)
 
     #######################################
     # Property Methods - Video Attributes #
@@ -350,9 +365,9 @@ class ClipBase:
 
         :raises ValueError: Video info has no height attribute
         """
-        if 'height' not in self._video_info:
+        if 'height' not in self._video:
             raise ValueError(f'{type(self).__name__}.video_height cannot be None.')
-        return self._video_info['height']
+        return self._video['height']
 
     @property
     def video_number_frames(self) -> int:
@@ -362,17 +377,17 @@ class ClipBase:
         :raises ValueError:  Number of video frames is None (which should never be true)
         """
         # Ensure we have a valid value
-        if ('number_frames' not in self._video_info) or (self._video_info['number_frames'] is None):
+        if ('number_frames' not in self._video) or (self._video['number_frames'] is None):
             raise ValueError(f'{type(self).__name__}.video_number_frames has not been set.')
 
-        return self._video_info['number_frames']
+        return self._video['number_frames']
 
     @property
     def video_pixel_format(self) -> str:
         """
         Pixel format of the underlying video
         """
-        return self._video_info['pix_fmt']
+        return self._video['pix_fmt']
 
     @property
     def video_width(self) -> int:
@@ -381,9 +396,9 @@ class ClipBase:
 
         :raises ValueError: Video info has no width attribute
         """
-        if 'width' not in self._video_info:
+        if 'width' not in self._video:
             raise ValueError(f'{type(self).__name__}.video_width cannot be None.')
-        return self._video_info['width']
+        return self._video['width']
 
     @property
     def file_path(self):
@@ -401,7 +416,7 @@ class ClipBase:
         """
         Duration in seconds of the video
         """
-        return self._video_info['duration']
+        return self._video['duration']
 
     @property
     def video_end_time(self):
@@ -409,21 +424,21 @@ class ClipBase:
         End time of the video itself
         """
         # Has end time for the video already been set, if so return it
-        if self._video_info['end_time']:
-            return self._video_info['end_time']
+        if self._video['end_time']:
+            return self._video['end_time']
 
         # Default to video duration
         self.video_end_time = self.video_duration
 
         # Return the video duration
-        return self._video_info['end_time']
+        return self._video['end_time']
 
     @video_end_time.setter
     def video_end_time(self, value):
         """
         Set the video_end_time attribute
         """
-        self._video_info['end_time'] = float(value)
+        self._video['end_time'] = float(value)
 
     @property
     def video_fps(self):
@@ -432,7 +447,7 @@ class ClipBase:
         :returns:
             int - Frames per second for the video
         """
-        return self._video_info['fps']
+        return self._video['fps']
 
     @video_fps.setter
     def video_fps(self, fps):
@@ -443,13 +458,13 @@ class ClipBase:
         """
         if not isinstance(fps, (int,float)):
             raise TypeError(f"{type(self).__name__}.video_fps must be an integer or a float")
-        self._video_info['fps'] = fps
+        self._video['fps'] = fps
 
     @property
     def video_resolution(self) -> str:
-        if 'resolution' not in self._video_info:
+        if 'resolution' not in self._video:
             raise TypeError(f'{type(self).__name__}.video_resolution is None.')
-        return self._video_info['resolution']
+        return self._video['resolution']
 
     @property
     def include_audio(self):
@@ -457,9 +472,9 @@ class ClipBase:
         Should the audio of this clip be included
         :return:
         """
-        if self._clip_info['include_audio'] is None:
+        if self._clip['include_audio'] is None:
             raise ValueError(f'{type(self).__name__}.include_audio cannot be None.')
-        return self._clip_info['include_audio']
+        return self._clip['include_audio']
 
     ###################
     # Private Methods #
@@ -1140,7 +1155,7 @@ class ClipBase:
                    ]
 
         # If we have an audio stream and we are to write audio
-        if self._audio_info and write_audio:
+        if self._audio and write_audio:
             # TODO: Pull this data from audio_stream or somewhere...
             # Audio Info
             fps = 44100
