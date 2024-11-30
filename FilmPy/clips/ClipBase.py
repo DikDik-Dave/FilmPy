@@ -1072,8 +1072,9 @@ class ClipBase:
         :param audio_codec: Audio Codec to use
         :param file_video_codec: Video Codec to use when writing the file
         """
-        logger = getLogger()
-        print(__name__.split('.')[0])
+        # Get a logger
+        logger = getLogger(__name__)
+
         # Get filename and extension from the file path
         file_name, ext = os.path.splitext(os.path.basename(file_path))
         ext = ext[1:].lower()
@@ -1106,7 +1107,7 @@ class ClipBase:
                    '-pix_fmt', 'rgb24',                     # pixel format
                    '-r', '%d' % self.fps,                   # frames per second
                    '-i', '-',                               # the input comes from a pipe
-                   '-an']                                   # tells FFMPEG not to expect any audio
+                   ]
 
         # If we have an audio stream and we are to write audio
         if self._audio_info and write_audio:
@@ -1140,6 +1141,8 @@ class ClipBase:
                 '-i', temp_audio_file_name,
                 '-acodec', 'copy'
             ])
+        else:
+            command.extend(['-an']) # tells FFMPEG not to expect any audio
 
         # Parameters relating to the output/final file
         command.extend([
@@ -1147,7 +1150,10 @@ class ClipBase:
             '-preset', 'medium',
             '-pix_fmt', self.pixel_format,
             file_path])
-        print(command)
+
+        # Log the ffmpeg call we will make
+        logger.debug(f"ffmpeg command \"{' '.join(command)}\"")
+
         # Write all the video frame data to the PIPE's standard input
         process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stdin=subprocess.PIPE,  bufsize=10 ** 8)
         for frame in self.get_frames():
