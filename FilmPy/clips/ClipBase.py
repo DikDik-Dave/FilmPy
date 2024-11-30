@@ -241,7 +241,7 @@ class ClipBase:
         """
         (x,y) coordinates for the clip (only used if the clip is composited)
         """
-        return (self._clip_info['position_x'], self._clip_info['position_y'])
+        return self._clip_info['position_x'], self._clip_info['position_y']
 
     @position.setter
     def position(self, value):
@@ -837,6 +837,44 @@ class ClipBase:
 
         return self._clip_frames
 
+    def get_video_frame(self,
+                  frame_index:int=None,
+                  frame_time:int=None,
+                  loop_frames=False):
+        """
+        Get a specific frame from this clip
+
+        :param frame_index: Index of the frame we want to retrieve
+        :param frame_time: time in seconds of the frame to retrieve
+        :param loop_frames: Should we throw an error or loop through the frames when given an out of range index
+        :return:
+        """
+        # Get the video frames
+        frames = self.get_frames()
+
+        # Ensure we have valid input
+        if (frame_index is None) and (frame_time is None):
+            msg = f"Either frame_index or frame_time must be provided to {type(self).__name__}.write_image()"
+            raise ValueError(msg)
+        elif frame_index and frame_time:
+            msg = f"Both frame_index and frame_time cannot be simultaneously be specified. "
+            raise ValueError(msg)
+
+        # Get the frame index
+        if frame_time:
+            frame_index = int(self.video_fps * frame_time)
+
+        # Do we have a negative integer, if so count from the back of the array
+        if (frame_index < 0) and (abs(frame_index) <= len(frames)):
+            frame_index = len(frames) + frame_index
+
+        # If requested, loop over the frames for an out of range value
+        if loop_frames:
+            frame_index = frame_index % len(frames)
+
+        # Return the requested frame
+        return frames[frame_index]
+
     def grayscale(self):
         """
         Converts the video to grayscale
@@ -889,50 +927,42 @@ class ClipBase:
         # Return this object to enable method chaining
         return self
 
-
-    def get_video_frame(self,
-                  frame_index:int=None,
-                  frame_time:int=None,
-                  loop_frames=False):
+    def multiply_color(self,
+                       red_multiplier:float=1,
+                       green_multiplier:float=1,
+                       blue_multiplier:float=1):
         """
-        Get a specific frame from this clip
-
-        :param frame_index: Index of the frame we want to retrieve
-        :param frame_time: time in seconds of the frame to retrieve
-        :param loop_frames: Should we throw an error or loop through the frames when given an out of range index
+        Increases or Decreases a given color component of each frame
         :return:
         """
-        # Get the video frames
-        frames = self.get_frames()
+        logger = getLogger(__name__)
 
-        # Ensure we have valid input
-        if (frame_index is None) and (frame_time is None):
-            msg = f"Either frame_index or frame_time must be provided to {type(self).__name__}.write_image()"
-            raise ValueError(msg)
-        elif frame_index and frame_time:
-            msg = f"Both frame_index and frame_time cannot be simultaneously be specified. "
-            raise ValueError(msg)
+        # If all the multipliers are 1, we have no work to do
+        if red_multiplier == green_multiplier == blue_multiplier == 1:
+            logger.warning(f"All multipliers, set to 1. No work needed.")
+            return self
 
-        # Get the frame index
-        if frame_time:
-            frame_index = int(self.video_fps * frame_time)
+        # Multiply colors in each frame
+        logger.debug(f"Multiply Colors - Red x {red_multiplier}, Green x {green_multiplier}, Blue x {blue_multiplier}")
+        altered_frames = []
+        for frame in self.get_frames():
+            altered_frames.append((frame * (red_multiplier, green_multiplier, blue_multiplier)).astype('uint8'))
 
-        # Do we have a negative integer, if so count from the back of the array
-        if (frame_index < 0) and (abs(frame_index) <= len(frames)):
-            frame_index = len(frames) + frame_index
+        # Replace the existing frames
+        self.set_frames(altered_frames)
 
-        # If requested, loop over the frames for an out of range value
-        if loop_frames:
-            frame_index = frame_index % len(frames)
+        # Return this object to enable method chaining
+        return self
 
-        # Return the requested frame
-        return frames[frame_index]
 
     def resize(self, *args, **kwargs):
         """
         Resize the video frames for the clip
-        :param: multiplier: Resizing multiplier
-        :param resample: Which resampling method to use during resizing (Defaults to BICUBIC)
+
+        :param: args: Positional arguments. If only one supplied it will be assumed to be kwargs['multiplier']
+        :param kwargs['multiplier']: Resizing multiplier
+        :param kwargs['resample']: Which resampling method to use during resizing (Defaults to BICUBIC)
+
         :return self: (to enable method chaining)
         """
         # Instantiate local variables
