@@ -492,10 +492,10 @@ class ClipBase:
     # Public Methods #
     ##################
     def add_colors(self,
-                       red_addend:int=1,
-                       green_addend:int=1,
-                       blue_addend:int=1,
-                       luminance:int=1):
+                       red_addend:int=0,
+                       green_addend:int=0,
+                       blue_addend:int=0,
+                       luminance:int=0):
         """
         Increase or decrease each color channel and the images luminosity
 
@@ -508,7 +508,7 @@ class ClipBase:
         logger = getLogger(__name__)
 
         # If all the multipliers are 1, we have no work to do
-        if red_addend == green_addend == blue_addend == luminance == 1:
+        if red_addend == green_addend == blue_addend == luminance == 0:
             logger.warning(f"All multipliers, set to 1. No work needed.")
             return self
 
