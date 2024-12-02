@@ -764,6 +764,67 @@ class ClipBase:
         # Enable method chaining
         return self
 
+    def divide_colors(self,
+                       red_divisor:float=1,
+                       green_divisor:float=1,
+                       blue_divisor:float=1,
+                       luminance:float=1):
+        """
+        Divides each color channel and the image's luminosity
+
+        :param red_divisor: Multiplier for the red channel
+        :param green_divisor: Multiplier for the green channel
+        :param blue_divisor: Multiplier for blue channel
+        :param luminance: Multiplier for luminance
+
+        :raises ValueError: A divisor with the value of 0 was supplied as an input
+
+        :return self: Enables method chaining
+        """
+        logger = getLogger(__name__)
+
+        # If all the multipliers are 1, we have no work to do
+        if red_divisor == green_divisor == blue_divisor == luminance == 1:
+            logger.warning(f"All divisors, set to 1. No work needed.")
+            return self
+
+        if red_divisor or green_divisor or blue_divisor or luminance == 0:
+            raise ValueError(f"divisor can not be zero.")
+
+        # Multiply colors in each frame
+        logger.debug(f"Color Divisors : Red x {red_divisor}, Green x {green_divisor}, "
+                     f"Blue x {blue_divisor}, Luminance={luminance}")
+        altered_frames = []
+        luminance_array = np.array([luminance, luminance, luminance])
+        for frame in self.get_frames():
+            altered_frames.append((frame / (red_divisor, green_divisor, blue_divisor) / luminance_array).astype('uint8'))
+
+        # Replace the existing frames
+        self.set_frames(altered_frames)
+
+        # Return this object to enable method chaining
+        return self
+
+    def invert_colors(self):
+        """
+        Invert colors of the footage
+
+        :return self: Enables method chaining
+        """
+        logger = getLogger(__name__)
+
+        # Invert colors of each frame
+        logger.debug(f"Inverting colors")
+        altered_frames = []
+        for frame in self.get_frames():
+            altered_frames.append((255 - frame).astype('uint8'))
+
+        # Replace the existing frames
+        self.set_frames(altered_frames)
+
+        # Return this object to enable method chaining
+        return self
+
     def fade_in(self,
                 duration,
                 fade_in_color=(0,0,0)):
@@ -884,7 +945,7 @@ class ClipBase:
 
         # No frames yet exist, copy the video data
         # TODO: respect clip start, end, etc
-        self._clip_frames = self.get_video_frames_list()
+        self._clip_frames = self.get_video_frames()
 
         return self._clip_frames
 
@@ -1193,12 +1254,12 @@ class ClipBase:
         # Write the video to the file
         command = [FFMPEG_BINARY,
                    '-y',  # Overwrite output file if it exists
-                   '-f', 'rawvideo',                        # Indicates ??
-                   '-vcodec', 'rawvideo',                   # Video Codec
-                   '-s', self.resolution,                   # size of one frame
-                   '-pix_fmt', 'rgb24',                     # pixel format
-                   '-r', '%d' % self.fps,                   # frames per second
-                   '-i', '-',                               # the input comes from a pipe
+                   '-f', 'rawvideo',                         # Raw video format
+                   '-vcodec', 'rawvideo',                    # Video Codec
+                   '-s', self.resolution,                    # size of one frame
+                   '-pix_fmt', self.processing_pixel_format, # pixel format we used when loading in the image
+                   '-r', '%d' % self.fps,                    # frames per second
+                   '-i', '-',                                # the input comes from a pipe
                    ]
 
         # If we have an audio stream and we are to write audio
