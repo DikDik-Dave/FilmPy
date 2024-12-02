@@ -25,7 +25,7 @@ class ClipBase:
                  clip_height=None,
                  clip_include_audio=None,
                  clip_position=(0,0),
-                 clip_processing_pixel_format='rgba',
+                 clip_processing_pixel_format='rgb24',
                  clip_pixel_format='yuv420p',  # Pixel for
                  mask_frames=None,
                  mask_behavior=MaskBehavior.LOOP_FRAMES,
@@ -491,6 +491,42 @@ class ClipBase:
     ##################
     # Public Methods #
     ##################
+    def add_colors(self,
+                       red_addend:int=1,
+                       green_addend:int=1,
+                       blue_addend:int=1,
+                       luminance:int=1):
+        """
+        Increase or decrease each color channel and the images luminosity
+
+        :param red_addend: Addend for the red channel
+        :param green_addend: Addend for the green channel
+        :param blue_addend: Addend for blue channel
+        :param luminance: Addend for luminance
+        :return:
+        """
+        logger = getLogger(__name__)
+
+        # If all the multipliers are 1, we have no work to do
+        if red_addend == green_addend == blue_addend == luminance == 1:
+            logger.warning(f"All multipliers, set to 1. No work needed.")
+            return self
+
+        # Add colors in each frame
+        logger.debug(f"Color Addends - Red x {red_addend}, Green x {green_addend}, "
+                     f"Blue x {blue_addend}, Luminance={luminance}")
+        altered_frames = []
+        luminance_array = np.array([luminance, luminance, luminance])
+        red_addend_array = np.array([red_addend, green_addend, blue_addend])
+        for frame in self.get_frames():
+            altered_frames.append((frame + red_addend_array + luminance_array).astype('uint8'))
+
+        # Replace the existing frames
+        self.set_frames(altered_frames)
+
+        # Return this object to enable method chaining
+        return self
+
     def audio_fade_in(self, duration, algorithm=Fade.LINEAR):
         """
         Apply a fade in to the audio track
@@ -839,7 +875,7 @@ class ClipBase:
 
     def get_frames(self):
         """
-        Get the video frames for this clip
+        Get the video frames list for this clip
         :return:
         """
         # Return the already created frames
@@ -848,7 +884,7 @@ class ClipBase:
 
         # No frames yet exist, copy the video data
         # TODO: respect clip start, end, etc
-        self._clip_frames = self.get_video_frames()
+        self._clip_frames = self.get_video_frames_list()
 
         return self._clip_frames
 
@@ -916,7 +952,7 @@ class ClipBase:
         """
         flipped_frames = []
         for frame in self.get_frames():
-            image = Image.fromarray(frame).transpose(Transpose.FLIP_LEFT_RIGHT)
+            image = Image.fromarray(frame).transpose(Transpose.FLIP_LEFT_RIGHT.value)
             flipped_frames.append(np.array(image))
 
         # Replace the clip frames with the now rotated frames
@@ -933,7 +969,7 @@ class ClipBase:
         """
         flipped_frames = []
         for frame in self.get_frames():
-            image = Image.fromarray(frame).transpose(Transpose.FLIP_TOP_BOTTOM)
+            image = Image.fromarray(frame).transpose(Transpose.FLIP_TOP_BOTTOM.value)
             flipped_frames.append(np.array(image))
 
         # Replace the clip frames with the now rotated frames
@@ -942,10 +978,20 @@ class ClipBase:
         # Return this object to enable method chaining
         return self
 
-    def multiply_color(self,
+    def multiply_colors(self,
                        red_multiplier:float=1,
                        green_multiplier:float=1,
-                       blue_multiplier:float=1):
+                       blue_multiplier:float=1,
+                       luminance:float=1):
+        """
+        Increase or decrease each color channel and the images luminosity
+
+        :param red_multiplier: Multiplier for the red channel
+        :param green_multiplier: Multiplier for the green channel
+        :param blue_multiplier: Multiplier for blue channel
+        :param luminance: Multiplier for luminance
+        :return:
+        """
         """
         Increases or Decreases a given color component of each frame
         :return:
@@ -953,22 +999,23 @@ class ClipBase:
         logger = getLogger(__name__)
 
         # If all the multipliers are 1, we have no work to do
-        if red_multiplier == green_multiplier == blue_multiplier == 1:
+        if red_multiplier == green_multiplier == blue_multiplier == luminance == 1:
             logger.warning(f"All multipliers, set to 1. No work needed.")
             return self
 
         # Multiply colors in each frame
-        logger.debug(f"Multiply Colors - Red x {red_multiplier}, Green x {green_multiplier}, Blue x {blue_multiplier}")
+        logger.debug(f"Multiply Colors - Red x {red_multiplier}, Green x {green_multiplier}, "
+                     f"Blue x {blue_multiplier}, Luminance={luminance}")
         altered_frames = []
+        luminance_array = np.array([luminance, luminance, luminance])
         for frame in self.get_frames():
-            altered_frames.append((frame * (red_multiplier, green_multiplier, blue_multiplier)).astype('uint8'))
+            altered_frames.append((frame * (red_multiplier, green_multiplier, blue_multiplier) * luminance_array).astype('uint8'))
 
         # Replace the existing frames
         self.set_frames(altered_frames)
 
         # Return this object to enable method chaining
         return self
-
 
     def resize(self, *args, **kwargs):
         """
@@ -1067,7 +1114,7 @@ class ClipBase:
                    "-y",
                    "-s", self.video_resolution,
                    '-f','rawvideo',
-                   '-pix_fmt', pixel_format,
+                   '-pix_fmt', self.processing_pixel_format,
                    '-i', '-',
                    file_path
                    ]
