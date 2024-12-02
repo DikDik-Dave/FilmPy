@@ -127,7 +127,7 @@ class Clip(ClipBase):
     ##################
     # Public Methods #
     ##################
-    def get_video_frames_list(self):
+    def get_video_frames(self):
         """
         Get the video frames
         :return: List of frames
@@ -163,35 +163,3 @@ class Clip(ClipBase):
 
         # Return the video frames
         return self._video_frames_list
-
-    def get_video_frames(self) -> np.array:
-        """
-        Get the underlying video frames associated to this clip.
-
-        :return np.array: Array of size (# frames * frame height) x (frame width) x (pixel format number components)
-        """
-        logger = getLogger(__name__)
-
-        # If we have already loaded the frames, we can just return them
-        if self._video['frames']:
-            return self._video['frames']
-
-        # Load all the frame data into a single ndarray
-        number_components = PIXEL_FORMATS[self.processing_pixel_format]['nb_components']
-        ffmpeg_command = [FFMPEG_BINARY,
-                        '-i', self._file_path,
-                        '-f', 'image2pipe',
-                        '-pix_fmt', self.processing_pixel_format,
-                        '-vcodec', 'rawvideo',
-                        '-']
-
-        # Read the video data
-        logger.debug(f'Calling ffmpeg \"{' '.join(ffmpeg_command)}\"')
-        completed_process = subprocess.run(ffmpeg_command, capture_output=True)
-
-        height = self.video_number_frames * self.video_height
-        self._video['frames'] = (numpy.fromstring(completed_process.stdout, dtype='uint8')
-                                 .reshape(height, self.video_width, number_components))
-
-        # return the video frames
-        return self._video['frames']
