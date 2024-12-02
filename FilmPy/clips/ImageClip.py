@@ -9,20 +9,30 @@ class ImageClip(ClipBase):
     """
     def __init__(self,
                  image_path:str=None,  # A path to an image file
-                 video_frames:[]=None,  # An array of video frames that comprise this Image
-                 clip_start_time:float=0,
                  clip_end_time=None,
-                 video_fps=None):
+                 clip_height=None,
+                 clip_start_time: float = 0,
+                 clip_width=None,
+                 video_fps=None,
+                 video_frames=None,  # An array of video frames that comprise this Image
+                 **kwargs):
         """
-        :param image_path: Path to an image file
-        :param video_frames: Image Data (e.g. a single video frame)
-        :param clip_start_time: Start of time of the clip in seconds
-        :param clip_end_time: End time of the clip in seconds
-        :param video_fps:
+        Instantiate an ImageClip
 
-        :raises:
-            ValueError
+        :param image_path: Optional path to an image file
+        :param clip_end_time: Optional end time for the clip
+        :param clip_height: Height of the clip. If image_path was provided, it will be retrieved from the image
+        :param clip_start_time:
+        :param clip_width: Width of the clip. If image_path was provided, it will be retrieved from the image.
+        :param video_fps:
+        :param video_frames:
+        :param kwargs:
+
+        :raises ValueError: When image_path and video_frames are both None
+        :raises ValueError: When video_frames and image_path are both specified (potentially conflicting data)
+        :raises ValueError: When video_frames is not None, but is not a list as expected
         """
+
         # Make sure we have some either an image file path or the video frames themselves
         if (image_path is None) and (video_frames is None):
             msg = (f"Invalid input received. "
@@ -31,20 +41,20 @@ class ImageClip(ClipBase):
 
         # Make sure we do not have potentially conflicting image data
         if image_path and video_frames:
-            msg = (f"Conflicting input received. "
-                   f"Either provide {classname(self)}.image_path or {classname(self)}.frame_data, not both.")
+            msg = (f"Conflicting input parameters to {type(self).__name__}. "
+                   f"Either provide image_path or video_frames, not both.")
             raise ValueError(msg)
 
-        # Set local variables
-        frame_width = None
-        frame_height = None
+        if (video_frames is not None) and (not isinstance(video_frames, list)):
+            msg = f"video_frames parameter is expected to be a list, not {type(video_frames)}"
+            raise ValueError(msg)
 
         # We were given a path to an image file
         if image_path and (video_frames is None):
             # Open the image file with PIL
             img = Image.open(image_path)
-            frame_width = img.size[0]
-            frame_height = img.size[1]
+            clip_width = img.size[0]
+            clip_height = img.size[1]
             video_frames = [numpy.array(img)]
 
             # TODO: Test & store exif data
@@ -58,18 +68,21 @@ class ImageClip(ClipBase):
             #     data = exifdata.get(tag_id).decode("utf-16")
             #     print(f"{tag:25}: {data}")
 
+
+        # Instantiate ClipBase
         super().__init__(clip_frames=video_frames,  # Frames for this clip
                          clip_start_time=clip_start_time,
                          clip_end_time=clip_end_time,
                          video_fps=video_fps,
                          clip_include_audio=False,
-                         clip_width=frame_width,
-                         clip_height=frame_height,
-                         video_frames=video_frames)
+                         clip_width=clip_width,
+                         clip_height=clip_height,
+                         video_frames=video_frames,
+                         **kwargs)
 
 
     ##################
     # Public Methods #
     ##################
     def get_video_frames(self):
-        return self._video_frames
+        return self._video['frames']
