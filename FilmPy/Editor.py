@@ -2,7 +2,8 @@ import os
 
 from logging import getLogger, INFO, StreamHandler, FileHandler, Formatter
 
-from FilmPy.clips.CompositeClip import CompositeClip
+from FilmPy.clips import ColorClip, CompositeClip, Clip, ImageClip, TextClip
+from FilmPy.Sequence import Sequence
 from FilmPy.constants import *
 
 
@@ -16,23 +17,18 @@ class Editor:
     ##################################
     @classmethod
     def color_clip(cls,
-                   color:tuple,
-                   frame_width:int,
-                   frame_height:int,
-                   end_time:float,
-                   video_fps:float
+                    *args,
+                   **kwargs,
                    ) -> ColorClip:
         """
-        Instantiate a ColorClip object
+        Instantiate a ColorClip object.
 
-        :param video_fps:
-        :param color: RGB tuple of the color to be displayed
-        :param frame_width: Frame Width
-        :param frame_height: Frame Height
-        :param end_time: End time in seconds of the clip
-        :return:
+        :param args: Positional arguments to be passed to ColorClip
+        :param color: Keyword arguments to be passed to ColorClip
+
+        :return ColorClip: a clip containing a single color
         """
-        return ColorClip(color,frame_width, frame_height, video_fps, end_time)
+        return ColorClip(*args, **kwargs)
 
     @classmethod
     def composite_clip(cls, *args, **kwargs):
@@ -166,7 +162,7 @@ class Editor:
         :param stream_format: Format for the stream handler, if set to None, no stream handler will be added
         :return:
         """
-        logger = getLogger(__name__.split('.'[0]))
+        logger = getLogger(__name__.split('.')[0])
 
         # Set the log level to the requested level
         logger.setLevel(log_level)
