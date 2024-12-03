@@ -190,7 +190,22 @@ PIXEL_FORMATS = {
                   'paletted': False,
                   'hardware_accelerated': False,
                   'nb_components': 4,
-                  'bits_per_pixel': 32}
+                  'bits_per_pixel': 32},
+    'rgb4': {'bitstream': True,
+             'input': False,
+             'output': True,
+             'paletted': False,
+             'hardware_accelerated': False,
+             'nb_components': 3,
+             'bits_per_pixel': 4},
+
+    'x2rgb10le': {'bitstream': False,
+             'input': True,
+             'output': True,
+             'paletted': False,
+             'hardware_accelerated': False,
+             'nb_components': 3,
+             'bits_per_pixel': 30}
 }
 
 #TODO - Port and remove entries below
@@ -203,7 +218,6 @@ I.... = Supported Input  format for conversion
 ....B = Bitstream format
 FLAGS NAME            NB_COMPONENTS BITS_PER_PIXEL
 -----
-.O..B rgb4                   3             4
 IO... rgb4_byte              3             4
 IO... nv12                   3            12
 IO... nv21                   3            12
@@ -376,7 +390,6 @@ IO... nv42                   3            24
 ..H.. vulkan                 0             0
 ..... y210be                 3            20
 I.... y210le                 3            20
-IO... x2rgb10le              3            30
 '''
 
 # Legal values that govern how mask frame data will be interpreted
