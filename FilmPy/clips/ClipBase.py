@@ -4,7 +4,6 @@ from logging import getLogger
 from subprocess import DEVNULL, PIPE
 
 from PIL import Image
-from cryptography.utils import deprecated
 
 from FilmPy.constants import *
 import numpy as np
@@ -74,8 +73,9 @@ class ClipBase:
                             'fps': video_fps,
                             'frames': video_frames,
                             'height': clip_height,
-                            'width': clip_width,
-                            'resolution': f"{clip_width}x{clip_height}"}    # Video metadata
+                            'number_frames': len(video_frames),
+                            'resolution': f"{clip_width}x{clip_height}",
+                            'width': clip_width}
 
         # File specific attributes
         self._file_path = file_path  # Path to whatever file is associated to this clip
@@ -594,7 +594,6 @@ class ClipBase:
         """
         Apply a gradual decrease to the level of the audio signal
 
-        :param algorithm: Type of audio fade in to implement,
         :param duration: Duration, in seconds, that the fade in will last for
 
         :return self: This object, to allow for method chaining
