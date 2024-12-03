@@ -52,15 +52,16 @@ class ClipBase:
 
         # Clip specific attributes
         self._clip_audio = None                                         # The audio data of the clip itself
-        self._clip_frames = [] if not clip_frames else clip_frames      # The frames of the clip itself
-        self._clip = {'end_time': clip_end_time,                                    # End time in seconds
-                           'fps': clip_fps,                                         # Frames per second for the clip
-                           'height': None,                                          # Height (in pixels) of the clip
-                           'include_audio': clip_include_audio,                     # Should the audio be included when rendered
-                           'processing_pixel_format': clip_processing_pixel_format,  # Pixel format to use while video processing
-                           'number_frames': None,  # Number of video frames in the clip
-                           'position_x': int(clip_position[0]),  # x coordindate for the clip
-                           'position_y': int(clip_position[1]),  # y coordinate for the clip
+        self._clip_frames = [] if not clip_frames is None else clip_frames              # The frames of the clip itself
+        self._clip = {'end_time': clip_end_time,                                        # End time in seconds
+                           'fps': clip_fps,                                             # Frames per second for the clip
+                           'frames': self._clip_frames,                                 # Frames that comprise the clip
+                           'height': None,                                              # Height (in pixels) of the clip
+                           'include_audio': clip_include_audio,                         # Should the audio be included when rendered
+                           'processing_pixel_format': clip_processing_pixel_format,     # Pixel format to use while video processing
+                           'number_frames': None,                                       # Number of video frames in the clip
+                           'position_x': int(clip_position[0]),                         # x coordindate for the clip
+                           'position_y': int(clip_position[1]),                         # y coordinate for the clip
                            'pixel_format': clip_pixel_format,  # Pixel Format
                            'resolution': None,  # Resolution string '{width}x{height}'
                            'start_time': clip_start_time,  # Start time in seconds
@@ -68,15 +69,13 @@ class ClipBase:
                       }
 
         # Video specific attributes
+        video_frames = [] if not video_frames else video_frames  # Frames that make up the video
         self._video = {'end_time': video_end_time,
                             'fps': video_fps,
                             'frames': video_frames,
                             'height': clip_height,
                             'width': clip_width,
                             'resolution': f"{clip_width}x{clip_height}"}    # Video metadata
-
-        #TODO - Remove _video_frames_list it is now considered deprecated
-        self._video_frames_list = [] if not video_frames else video_frames       # Frames that make up the video
 
         # File specific attributes
         self._file_path = file_path  # Path to whatever file is associated to this clip
@@ -212,6 +211,9 @@ class ClipBase:
         """
         self._clip['height'] = int(value)
 
+        # Update the clip's resolution
+        self._clip['resolution'] = f"{self.width}x{self.height}"
+
     @property
     def processing_pixel_format(self):
         """
@@ -311,8 +313,6 @@ class ClipBase:
         # Default width if not set to the video's width
         self._clip['width'] = self.video_width
 
-        # Update the clip's resolution
-        self._clip['resolution'] = f"{self._clip['width']}x{self._clip['height']}"
         return self._clip['width']
 
     @width.setter
@@ -323,7 +323,10 @@ class ClipBase:
         :return:
         """
         self._clip['width'] = int(value)
+
+        # Update the clip's resolution
         self._clip['resolution'] = f"{self._clip['width']}x{self._clip['height']}"
+
 
     @property
     def x(self):
@@ -1156,24 +1159,26 @@ class ClipBase:
         # Return this object to enable method chaining
         return self
 
-    def write_image(self, file_path, frame_index:int=None, frame_time:int=None) -> bool:
+    def write_image(self, file_path, frame_index:int=0, frame_time:int=None) -> bool:
         """
         Write a single frame out as an image file
         :return: True, if successful
         """
+        logger = getLogger(__name__)
+
         # Ensure we have valid input
         if (frame_index is None) and (frame_time is None):
             msg = f"Either frame_index or frame_time must be provided to {type(self).__name__}.write_image()"
             raise ValueError(msg)
+
         if frame_index and frame_time:
             msg = f"Both frame_index and frame_time cannot be simultaneously be specified. "
             raise ValueError(msg)
 
         frame = self.get_video_frame(frame_index=frame_index, frame_time=frame_time)
-        pixel_format = 'rgb24'
         command = [FFMPEG_BINARY,
                    "-y",
-                   "-s", self.video_resolution,
+                   "-s", self.resolution,
                    '-f','rawvideo',
                    '-pix_fmt', self.processing_pixel_format,
                    '-i', '-',
@@ -1182,6 +1187,7 @@ class ClipBase:
 
 
         # Call ffmpeg, and pip the data to the subprocess
+        logger.debug(f"Calling ffmpeg : {' '.join(command)}")
         process = subprocess.Popen(command, stdout=DEVNULL, stdin=PIPE)
         _, process_error = process.communicate(frame.tobytes())
         if process.returncode:
