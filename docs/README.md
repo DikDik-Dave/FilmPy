@@ -1,22 +1,39 @@
 # FilmPy
 FilmPy is a python module for film editing. 
-Its goal is to enable fully video and audio editing. 
+Its goal is to enable programatic video and audio editing. Some of the benefits of this package over similiar python packages are
+
+* Easily configurable logging
+* Commitment to a DRY and performant approach to architecture
+* A command line interface that allows editing via xml script files
 
 ## Main Functionality
-### Using FilmPy you will be able to
+### Using FilmPy you are able to do the following
+| Features             | Features       |
+| :--------                                  | :---------------------           |
+| Add borders (margin) to a clip             | Do color division on a clip             |
+| Invert the colors of a clip                | Do color multipication on a clip        |
+| Decrease the audio volume of a clip        | Remove the audio for a track [NOT DONE] |
+| Increase the audio volume of a clip        | Composite video clips                   |
+| Create a linear fade in from a given color on a clip | Create a linear fade out to a given color on a clip [NOT DONE] |
+
+
+
 |  Audio                                   |  Image & Video                           | Editing / Other           |
 | :----------------------------------------------------- | :----------------------------------------------------- | :---------------- |
-| Decrease the volume                                    | Add borders (margin)                  | Add static image overlays to a video clip [NOT YET]                  |
-| Increase the volume    | Mirror footage horizontally                            | Concatenate clips |
-| Fade Ins                                                       | Mirror footage vertically                              | Save a single image from a video file                  |
+|                                     |                   | Add static image overlays to a video clip [NOT YET]                  |
+|     | Mirror footage horizontally                            | Concatenate clips |
+|                                                        | Mirror footage vertically                              | Save a single image from a video file                  |
 | Fade Outs [NOT YET] |Gamma Correction | Find installed fonts (Windows Only) |
 |                  | Convert footage to grayscale           | Resize the footage using various resampling methods |
 |            | Reverse footage    | Configure package level logging|
 | Adjust the audio volume of a clips and clip sequences [NOT YET] | Save a single image from a video file ||
 | Save clips as video files | Rotate clips, images, and sequences of clips||
-| | Create composite video clips [NOT YET]| |
+
 
 ## How To Use This Library
+There are two primary interfaces to use FilmPy, importing the package or calling it via command line interface. 
+These two approaches are briefly described below. 
+
 ### Import the editor
 The Editor class is designed to be the one and only import needed to use this library. 
 The Editor is a class that represents video editing. 
