@@ -91,8 +91,8 @@ class CompositeClip(ClipBase):
         Frames per second of the clip itself
         """
         # If frames per second is already set, return it
-        if self._clip_info['fps']:
-            return self._clip_info['fps']
+        if self._clip['fps']:
+            return self._clip['fps']
 
         # Default it to max fps from it's clips
         max_fps = 0
@@ -100,10 +100,10 @@ class CompositeClip(ClipBase):
             if clip.fps > max_fps:
                 max_fps = clip.fps
 
-        self._clip_info['fps'] = max_fps
+        self._clip['fps'] = max_fps
 
         # return frames per second
-        return self._clip_info['fps']
+        return self._clip['fps']
 
     @property
     def height(self):
@@ -111,8 +111,8 @@ class CompositeClip(ClipBase):
         Height of the clip itself
         """
         # If the height has already been set, return it
-        if self._clip_info['height']:
-            return self._clip_info['height']
+        if self._clip['height']:
+            return self._clip['height']
 
         # Default to the max height from it's clips
         max_height = 0
@@ -120,13 +120,13 @@ class CompositeClip(ClipBase):
             if clip.height > max_height:
                 max_height = clip.height
 
-        self._clip_info['height'] = max_height
+        self._clip['height'] = max_height
 
         # Update the clip's resolution
-        self._clip_info['resolution'] = f"{self._clip_info['width']}x{self._clip_info['height']}"
+        self._clip['resolution'] = f"{self._clip['width']}x{self._clip['height']}"
 
         # Return the height of the clip
-        return self._clip_info['height']
+        return self._clip['height']
 
     @property
     def width(self):
@@ -135,23 +135,23 @@ class CompositeClip(ClipBase):
         """
 
         # If the width has already been set, return it
-        if self._clip_info['width']:
-            return self._clip_info['width']
+        if self._clip['width']:
+            return self._clip['width']
 
-        # Default to the max width from it's clips
+        # Default to the max width from its clips
         max_width = 0
         for clip in self._clips:
             if clip.width > max_width:
                 max_width = clip.width
 
         # Update the clip's width
-        self._clip_info['width'] = max_width
+        self._clip['width'] = max_width
 
         # Update the clip's resolution
-        self._clip_info['resolution'] = f"{self._clip_info['width']}x{self._clip_info['height']}"
+        self._clip['resolution'] = f"{self._clip['width']}x{self._clip['height']}"
 
         # Return the height of the clip
-        return self._clip_info['width']
+        return self._clip['width']
 
     ##################
     # Public Methods #
