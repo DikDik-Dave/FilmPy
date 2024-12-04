@@ -1,17 +1,30 @@
-.. FilmPy documentation master file, created by
-   sphinx-quickstart on Tue Dec  3 19:15:34 2024.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+FilmPy - Audio Video Editing Made Easy
+======================================
 
-FilmPy documentation
-====================
+**FilmPy** is a Python library for audio and video editing.
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
+.. image:: images/FilmPy.png
+ :width: 250
 
+User Guide
+----------
+
+Supporting FilmPy
+-----------------
+
+API Documentation
+-----------------
+
+
+.. note::
+
+   This project is under active development, and has not yet reached it's first release.
+   Be patient good things are coming.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+    :hidden:
+    :titlesonly:
 
+    glossary
+    user-guide
+    supporting-FilmPy
