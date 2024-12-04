@@ -16,7 +16,7 @@ class TextClip(ImageClip):
                  text=None,
                  **kwargs):
         """
-        Instantiate a clip from a piece of text.
+        Instantiate a clip from a piece of text..
 
         :param align:
         :param background_color:
