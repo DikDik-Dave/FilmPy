@@ -1206,11 +1206,13 @@ class ClipBase:
             raise ValueError(msg)
 
         frame = self.get_video_frame(frame_index=frame_index, frame_time=frame_time)
+        # NOTE: We are intentionally using pixel_format_input here, as we are writing a single image
         command = [FFMPEG_BINARY,
                    "-y",
+                   "-loglevel", "error",                # Only notify us of errors
                    "-s", self.resolution,
                    '-f','rawvideo',
-                   '-pix_fmt', self.pixel_format_output,
+                   '-pix_fmt', self.pixel_format_input, # Format that we will be sending the data in
                    '-i', '-',
                    file_path
                    ]
