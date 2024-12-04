@@ -3,6 +3,9 @@ from PIL import Image
 import numpy
 
 from FilmPy.clips.ClipBase import ClipBase
+from FilmPy.constants import ImageModes
+
+
 class ImageClip(ClipBase):
     """
     An image clip is a clip comprised of a single image
@@ -12,6 +15,8 @@ class ImageClip(ClipBase):
                  clip_end_time=None,
                  clip_height=None,
                  clip_start_time: float = 0,
+                 clip_pixel_format_input='rgb24',
+                 clip_pixel_format_output='rgb24',
                  clip_width=None,
                  video_fps=None,
                  video_frames=None,  # An array of video frames that comprise this Image
@@ -45,6 +50,7 @@ class ImageClip(ClipBase):
                    f"Either provide image_path or video_frames, not both.")
             raise ValueError(msg)
 
+        # Video frames must be a list of ndarray objects
         if (video_frames is not None) and (not isinstance(video_frames, list)):
             msg = f"video_frames parameter is expected to be a list, not {type(video_frames)}"
             raise ValueError(msg)
@@ -58,7 +64,6 @@ class ImageClip(ClipBase):
             video_frames = [numpy.array(img)]
 
             # TODO: Test & store exif data
-
             # exifdata = img.getexif()
             # print(exifdata)
             # # iterating over all EXIF data fields
@@ -77,9 +82,10 @@ class ImageClip(ClipBase):
                          clip_include_audio=False,
                          clip_width=clip_width,
                          clip_height=clip_height,
+                         clip_pixel_format_input=clip_pixel_format_input,
+                         clip_pixel_format_output=clip_pixel_format_output,
                          video_frames=video_frames,
                          **kwargs)
-
 
     ##################
     # Public Methods #
