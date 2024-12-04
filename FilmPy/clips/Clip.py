@@ -135,22 +135,22 @@ class Clip(ClipBase):
         logger = getLogger(__name__)
 
         # If we already loaded the frames, just return them
-        if self._video_frames_list:
-            return self._video_frames_list
+        if self._video['frames']:
+            return self._video['frames']
 
         # Call ffmpeg and pipe it's output
         command = [FFMPEG_BINARY,
-                   '-i', self._file_path,
-                   '-f', 'image2pipe',
-                   '-pix_fmt', 'rgb24',
-                   '-vcodec', 'rawvideo',
-                   '-']
+                   '-i', self._file_path,                       # File we will load video frames from
+                   '-f', 'image2pipe',                          # Format is 'image2pipe'
+                   '-pix_fmt', self.pixel_format_input,         # Pixel format we will use internally
+                   '-vcodec', 'rawvideo',                       # Set video codec to 'rawvideo'
+                   '-']                                         # Pipe the output
 
         # Read the video data
         logger.debug(f'Calling ffmpeg \"{' '.join(command)}\"')
         completed_process = subprocess.run(command, capture_output=True)
 
-        # Get all frames - Old approach
+        # Get all frames
         frame_length = self._video['width'] * self._video['height'] * 3
         for i in range(0, len(completed_process.stdout), frame_length):
             frame = completed_process.stdout[i:i + frame_length]
@@ -159,7 +159,7 @@ class Clip(ClipBase):
                                                                     3))
 
             # Store the frame in our frames list
-            self._video_frames_list.append(frame)
+            self._video['frames'].append(frame)
 
         # Return the video frames
-        return self._video_frames_list
+        return self._video['frames']
