@@ -1,77 +1,86 @@
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
-from FilmPy.clips.ClipBase import ClipBase
+from FilmPy.clips.ImageClip import ImageClip
 
-class TextClip(ClipBase):
+class TextClip(ImageClip):
     def __init__(self,
                  align="left",
-                 background_color=None,
-                 clip_end_time=10,
+                 background_color="green",
+                 fill="white",
                  font_path=None,
                  font_size=None,
                  line_spacing = 4,
-                 text_stroke_color=None,
                  size=None,
+                 stroke_fill="black",
                  stroke_width=0,
                  text=None,
-                 color="black",
                  **kwargs):
         """
+        Instantiate a clip from a piece of text
 
+        :param align:
         :param background_color:
-        :param clip_end_time:
+        :param fill:
         :param font_path:
-        :param font_size: Size of the font to be used
-        :param line_spacing: Number of pixels to use as spacing between lines in multiline text
-        :param text_stroke_color:
-        :param size: Size of the clip itself, if not provided, will default to the size needed to render the text
-        :param stroke_width: The width of the exterior border around each character in a font
-        :param text: Actual text to display
-        :param color: Color in which the text will be rendered
+        :param font_size:
+        :param line_spacing:
+        :param size:
+        :param stroke_fill:
+        :param stroke_width:
+        :param text: Text to be rendered
+        :param kwargs: Remaining keyword arguments, will be passed to ImageClip's constructor
         """
-
-        # Initialize the ClipBase
-        super().__init__(clip_pixel_format_input='rgba',
-                         clip_pixel_format_output='rgba')
 
         # Set TextClip specific attributes
         self._text = {
             'align': align,
+            'fill': fill,
             'font_path': font_path,
             'font_size': font_size,
             'line_spacing': line_spacing,
+            'pixel_format': 'rgba',
+            'stroke_fill': stroke_fill,
             'stroke_width': stroke_width,
             'text': text
         }
 
-        # Set clip height, width
+        # If we were not provided the size for the clip, default it to the text size
+        text_width, text_height, text_x, text_y = self._text_size()
         if not size:
-            size = self._text_size()
-        self.width = size[0]
-        self.height = size[1]
+            size = text_width, text_height
 
         # Draw the font to an image
-        image = Image.new(self.pixel_format_input.upper(), (self.width, self.height), color=background_color)
+        image = Image.new(self._text['pixel_format'].upper(), (size[0], size[1]), color=background_color)
         font = ImageFont.truetype(font_path, font_size)
         drawing = ImageDraw.Draw(image)
         drawing.multiline_text(
             align=self._text['align'],
-            anchor="lm",
-            fill=color,
+            fill=fill,
             font=font,
             spacing=self._text['line_spacing'],
+            stroke_fill=self._text['stroke_fill'],
             stroke_width=self._text['stroke_width'],
             text=text,
-            xy=(50, 50)
+            xy=(text_x, text_y)
         )
 
-        # Use the image we created as the frame for this clip
-        self.set_frames([np.array(image).astype('uint8')])
 
+        # Initialize the ImageClip
+        super().__init__(
+                         clip_height=size[1],
+                         clip_pixel_format_input=self._text['pixel_format'],
+                         clip_pixel_format_output=self._text['pixel_format'],
+                         clip_width=size[0],
+                         video_frames=[np.array(image).astype('uint8')],
+                         **kwargs)
+
+    ###################
+    # Private Methods #
+    ###################
     def _text_size(self) -> tuple:
         """
         Return the width and height needed for the requested text
-        :return:
+        :return width,height,x,y: Width and Height, the x,y coordinates of where to draw the text
         """
         image = Image.new("RGB", (1,1))
         image_font = ImageFont.truetype(self._text['font_path'], self._text['font_size'])
@@ -79,13 +88,43 @@ class TextClip(ClipBase):
 
         left, top, right, bottom = draw.multiline_textbbox(
             align=self._text['align'],
-            anchor="lm",
             font=image_font,
             spacing=self._text['line_spacing'],
             stroke_width=self._text['stroke_width'],
             text=self._text['text'],
-            xy=(0, 0)
+            xy=(0,0)
             
         )
 
-        return int(right - left), int(bottom - top)
+        return int(right - left), int(bottom - top), int(0 - left), int(0 - top)
+
+    ###########################
+    # Property Methods - Text #
+    ###########################
+    @property
+    def align(self):
+        """
+        Text alignment of the clip
+        """
+        return self._text['align']
+
+    @property
+    def fill(self):
+        """
+        Color to use for the text
+        """
+        return self._text['fill']
+
+    @property
+    def font_path(self):
+        """
+        Full path to the image file being used
+        """
+        return self._text['font_path']
+
+    @property
+    def font_size(self):
+        """
+        Font size of the text in the clip
+        """
+        return self._text['font_size']
