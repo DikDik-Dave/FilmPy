@@ -24,8 +24,7 @@ class ClipBase:
                  clip_height=None,
                  clip_include_audio=None,
                  clip_position=(0,0),
-                 clip_pixel_format_input='rgb24',
-                 clip_pixel_format_output='yuv420p',  # Pixel for
+                 clip_pixel_format='rgb24',
                  mask_frames=None,
                  mask_behavior=MaskBehavior.LOOP_FRAMES,
                  video_end_time=None,
@@ -42,8 +41,8 @@ class ClipBase:
         :param video_fps:
         """
         # Ensure the clip pixel format is valid
-        if clip_pixel_format_output not in PIXEL_FORMATS.keys():
-            raise ValueError(f"'{clip_pixel_format_output}' is not a valid value for clip_pixel_format.")
+        if clip_pixel_format not in PIXEL_FORMATS.keys():
+            raise ValueError(f"'{clip_pixel_format}' is not a valid value for clip_pixel_format.")
 
         # Audio Specific Attributes
         self._audio = {}               # Audio metadata
@@ -52,13 +51,12 @@ class ClipBase:
         # Clip specific attributes
         self._clip_audio = None                                                 # The audio data of the clip itself
         clip_frames = [] if not clip_frames is None else clip_frames      # The frames of the clip itself
-        self._clip = {'end_time': clip_end_time,                                # End time in seconds
-                           'fps': clip_fps,                                     # Frames per second for the clip
-                           'frames': clip_frames,                               # Frames that comprise the clip
-                           'height': None,                                      # Height (in pixels) of the clip
-                           'include_audio': clip_include_audio,                 # Should the audio be included when rendered
-                           'pixel_format_input': clip_pixel_format_input,       # Pixel format to use while video processing
-                           'pixel_format_output': clip_pixel_format_output,     # Pixel Format
+        self._clip = {'end_time': clip_end_time,  # End time in seconds
+                           'fps': clip_fps,  # Frames per second for the clip
+                           'frames': clip_frames,  # Frames that comprise the clip
+                           'height': None,  # Height (in pixels) of the clip
+                           'include_audio': clip_include_audio,  # Should the audio be included when rendered
+                           'pixel_format': clip_pixel_format,  # Pixel format to use while video processing
                            'number_frames': None,  # Number of video frames in the clip
                            'position_x': int(clip_position[0]),  # x coordinate for the clip
                            'position_y': int(clip_position[1]),  # y coordinate for the clip
@@ -203,14 +201,14 @@ class ClipBase:
         self._clip['resolution'] = f"{self.width}x{self.height}"
 
     @property
-    def pixel_format_input(self) -> str:
+    def pixel_format(self) -> str:
         """
         Pixel format to be used when reading in this clip (if it was from disk)
         """
-        return self._clip['pixel_format_input']
+        return self._clip['pixel_format']
 
-    @pixel_format_input.setter
-    def pixel_format_input(self, value):
+    @pixel_format.setter
+    def pixel_format(self, value):
         """
         Set the pixel format input value
         """
@@ -218,28 +216,7 @@ class ClipBase:
         if value not in PIXEL_FORMATS.keys():
             raise ValueError(f"'{value}' is not a valid pixel format.")
 
-        self._clip['pixel_format_input'] = value
-
-    @property
-    def pixel_format_output(self) -> str:
-        """
-        Pixel format to use when writing out this clip
-        :return:
-        """
-        return self._clip['pixel_format_output']
-
-    @pixel_format_output.setter
-    def pixel_format_output(self, value):
-        """
-        Set the pixel format input value
-        """
-        # Ensure we have a valid pixel format
-        if value not in PIXEL_FORMATS.keys():
-            raise ValueError(f"'{value}' is not a valid pixel format.")
-
-        # Set the pixel format output value
-        self._clip['pixel_format_output'] = value
-
+        self._clip['pixel_format'] = value
 
     @property
     def number_frames(self) -> int:
@@ -929,9 +906,9 @@ class ClipBase:
         if self._mask['initialized']:
             return self._mask['frames']
 
-        # Default the pixel format to the clip's pixel_format_input value
+        # Default the pixel format to the clip's pixel_format value
         if not pixel_format:
-            pixel_format = self.pixel_format_input
+            pixel_format = self.pixel_format
 
         # Generate mask cell
         number_components = PIXEL_FORMATS[pixel_format]['nb_components']
@@ -1202,13 +1179,13 @@ class ClipBase:
             raise ValueError(msg)
 
         frame = self.get_video_frame(frame_index=frame_index, frame_time=frame_time)
-        # NOTE: We are intentionally using pixel_format_input here, as we are writing a single image
+
         command = [FFMPEG_BINARY,
                    "-y",
                    "-loglevel", "error",                # Only notify us of errors
                    "-s", self.resolution,
                    '-f','rawvideo',
-                   '-pix_fmt', self.pixel_format_input, # Format that we will be sending the data in
+                   '-pix_fmt', self.pixel_format,       # Format that we will be sending the data to ffmpeg in
                    '-i', '-',
                    file_path
                    ]
@@ -1295,7 +1272,7 @@ class ClipBase:
                    '-f', 'rawvideo',                         # Raw video format
                    '-vcodec', 'rawvideo',                    # Video Codec
                    '-s', self.resolution,                    # size of one frame
-                   '-pix_fmt', self.pixel_format_output,     # pixel format we used when loading in the image
+                   '-pix_fmt', self.pixel_format,            # pixel format we used when loading in the image
                    '-r', '%d' % self.fps,                    # frames per second
                    '-i', '-',                                # the input comes from a pipe
                    ]
