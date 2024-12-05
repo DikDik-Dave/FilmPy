@@ -1247,11 +1247,13 @@ class ClipBase:
 
         self._clip_frames = value
 
-    def write_video_file(self,
-                         file_path,
-                         write_audio=True,
-                         audio_codec=None,
-                         file_video_codec=None):
+    def write_video(self,
+                    file_path,
+                    write_audio=True,
+                    audio_codec=None,
+                    file_video_codec=None,
+                    file_pixel_format='yuv420p',
+                    ffmpeg_log_level='error'):
         """
         Writes this clip to a video file
 
@@ -1288,7 +1290,8 @@ class ClipBase:
 
         # Write the video to the file
         command = [FFMPEG_BINARY,
-                   '-y',  # Overwrite output file if it exists
+                   '-y',                                     # Overwrite output file if it exists
+                   '-loglevel', ffmpeg_log_level,            # Set ffmpeg's log level accordingly
                    '-f', 'rawvideo',                         # Raw video format
                    '-vcodec', 'rawvideo',                    # Video Codec
                    '-s', self.resolution,                    # size of one frame
@@ -1310,13 +1313,16 @@ class ClipBase:
             # FFMPEG Command to write audio to a file
             ffmpeg_command = [
                 FFMPEG_BINARY, '-y',
-                '-loglevel', 'error',
+                '-loglevel', ffmpeg_log_level,                          # Set ffmpeg's log level accordingly
                 "-f", 's%dle' % (8 * number_bytes),
                 "-acodec", 'pcm_s%dle' % (8 * number_bytes),
                 '-ar', "%d" % fps,
                 '-ac', "%d" % number_channels,
                 '-i', '-',
                 temp_audio_file_name]
+
+            # Log the ffmpeg call we will make
+            logger.debug(f"ffmpeg command \"{' '.join(ffmpeg_command)}\"")
 
             # Write all the data (via ffmpeg) to the temp file
             process = subprocess.Popen(ffmpeg_command, stdin=subprocess.PIPE, bufsize=10 ** 8)
@@ -1334,9 +1340,9 @@ class ClipBase:
 
         # Parameters relating to the output/final file
         command.extend([
-            '-vcodec', file_video_codec,
-            '-preset', 'medium',
-            '-pix_fmt', self.pixel_format_output,
+            '-vcodec', file_video_codec,                #
+            '-preset', 'medium',                        # ???
+            '-pix_fmt', file_pixel_format,              # Pixel format for the final file to write
             file_path])
 
         # Log the ffmpeg call we will make
