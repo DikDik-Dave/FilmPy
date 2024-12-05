@@ -16,7 +16,7 @@ class ClipBase:
     def __init__(self,
                  audio_frames=None,
                  clip_end_time=None,
-                 clip_fps=None,
+                 clip_fps=30,
                  clip_start_time=0,
                  clip_width=None,
                  file_path=None,
@@ -264,13 +264,6 @@ class ClipBase:
         :return:
         """
         self._clip['number_frames'] = int(value)
-
-    @property
-    def pixel_format(self):
-        """
-        Pixel format of the clip itself
-        """
-        return self._clip['pixel_format']
 
     @property
     def position(self) -> tuple:
@@ -1016,11 +1009,17 @@ class ClipBase:
         return frames[frame_index]
 
     def get_video_frames(self):
+        """
+        Get the underlying video frames
+
+        :return: List frames from the underlying video
+        """
         return self._video['frames']
 
     def grayscale(self):
         """
         Converts the video to grayscale
+
         :return self: Enables method chaining
         """
         altered_frames = []
@@ -1028,7 +1027,6 @@ class ClipBase:
             image = Image.fromarray(frame).convert(ImageModes.GRAYSCALE.value)
             frame = np.stack((np.array(image), np.array(image), np.array(image)), axis=2).astype('uint8')
             altered_frames.append(frame)
-
 
         # Replace the clip frames with the now rotated frames
         self.set_frames(altered_frames)
@@ -1338,7 +1336,7 @@ class ClipBase:
         command.extend([
             '-vcodec', file_video_codec,
             '-preset', 'medium',
-            '-pix_fmt', self.pixel_format,
+            '-pix_fmt', self.pixel_format_output,
             file_path])
 
         # Log the ffmpeg call we will make
