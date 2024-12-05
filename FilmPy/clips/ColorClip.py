@@ -1,10 +1,13 @@
 from FilmPy.clips.ImageClip import ImageClip
+from FilmPy.constants import DEFAULT_FRAME_RATE
 import numpy
 
 class ColorClip(ImageClip):
     def __init__(self,
-                 size:tuple,
-                 color=(57,255,20),
+                 size:tuple=None,
+                 end_time:int=None,
+                 fps:int=DEFAULT_FRAME_RATE,
+                 color=(57, 255, 20),
                  **kwargs):
         """
         Clip containing a single color
@@ -19,11 +22,20 @@ class ColorClip(ImageClip):
         if not isinstance(size, (tuple, list)):
             raise ValueError(f"size parameter must be an a tuple or a list")
 
+        # Ensure end_time is a number
+        if not isinstance(end_time, (int, float)):
+            raise ValueError('end_time must be a number')
+
         # Create a frame of the appropriate size
+        video_frames = []
         frame = numpy.tile(color, size[0] * size[1]).reshape(size[1], size[0], 3).astype('uint8')
+        for x in range(int(fps * end_time)):
+            video_frames.append(frame)
 
         # Instantiate ImageClip
-        super().__init__(video_frames=[frame],
+        super().__init__(video_frames=video_frames,
+                         clip_end_time=end_time,
                          clip_width=size[0],
                          clip_height=size[1],
+                         clip_fps=fps,
                          **kwargs)
