@@ -17,14 +17,15 @@ class ColorClip(ImageClip):
         :param kwargs: Keyword arguments to pass on to ImageClip & BaseClip
 
         :raises ValueError: When size is not a tuple or list
+        :raises ValueError: When end_time is not a number
         """
         # Ensure size is a list or a tuple
-        if not isinstance(size, (tuple, list)):
-            raise ValueError(f"size parameter must be an a tuple or a list")
+        if not isinstance(size, (tuple, list) or (len(size) != 2)):
+            raise ValueError(f"{type(self).__name__}(size=) must be an a tuple or a list of (width, height)")
 
         # Ensure end_time is a number
         if not isinstance(end_time, (int, float)):
-            raise ValueError('end_time must be a number')
+            raise ValueError(f'{type(self).__name__}(end_time=) must be a number')
 
         # Create the necessary frames
         video_frames = []
