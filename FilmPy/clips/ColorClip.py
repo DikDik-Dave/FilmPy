@@ -26,7 +26,7 @@ class ColorClip(ImageClip):
         if not isinstance(end_time, (int, float)):
             raise ValueError('end_time must be a number')
 
-        # Create a frame of the appropriate size
+        # Create the necessary frames
         video_frames = []
         frame = numpy.tile(color, size[0] * size[1]).reshape(size[1], size[0], 3).astype('uint8')
         for x in range(int(fps * end_time)):
