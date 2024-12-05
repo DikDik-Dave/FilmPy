@@ -15,8 +15,7 @@ class ImageClip(ClipBase):
                  clip_end_time=None,
                  clip_height=None,
                  clip_start_time: float = 0,
-                 clip_pixel_format_input='rgb24',
-                 clip_pixel_format_output='rgb24',
+                 clip_pixel_format='rgb24',
                  clip_width=None,
                  video_fps=None,
                  video_frames=None,  # An array of video frames that comprise this Image
@@ -82,7 +81,6 @@ class ImageClip(ClipBase):
                          clip_include_audio=False,
                          clip_width=clip_width,
                          clip_height=clip_height,
-                         clip_pixel_format_input=clip_pixel_format_input,
-                         clip_pixel_format_output=clip_pixel_format_output,
+                         clip_pixel_format=clip_pixel_format,
                          video_frames=video_frames,
                          **kwargs)
