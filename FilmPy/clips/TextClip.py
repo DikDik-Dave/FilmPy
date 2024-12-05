@@ -1,11 +1,14 @@
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from FilmPy.clips.ImageClip import ImageClip
+from FilmPy.constants import DEFAULT_FRAME_RATE
 
 class TextClip(ImageClip):
     def __init__(self,
                  align="left",
                  background_color="green",
+                 end_time: int = None,
+                 fps: int = DEFAULT_FRAME_RATE,
                  fill="white",
                  font_path=None,
                  font_size=None,
@@ -65,13 +68,19 @@ class TextClip(ImageClip):
         )
 
 
+        # Create a frame of the appropriate size
+        video_frames = []
+        frame = np.array(image).astype('uint8')
+        for x in range(int(fps * end_time)):
+            video_frames.append(frame)
+
         # Initialize the ImageClip
         super().__init__(
                          clip_height=size[1],
-                         clip_pixel_format_input=self._text['pixel_format'],
+                         clip_pixel_format=self._text['pixel_format'],
                          clip_pixel_format_output=self._text['pixel_format'],
                          clip_width=size[0],
-                         video_frames=[np.array(image).astype('uint8')],
+                         video_frames=video_frames,
                          **kwargs)
 
     ###################
