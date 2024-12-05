@@ -34,6 +34,11 @@ class TextClip(ImageClip):
         :param kwargs: Remaining keyword arguments, will be passed to ImageClip's constructor
         """
 
+        # Ensure end_time is a number
+        if not isinstance(end_time, (int, float)):
+            raise ValueError(f'{type(self).__name__}(end_time=) must be a number')
+
+
         # Set TextClip specific attributes
         self._text = {
             'align': align,
@@ -78,7 +83,6 @@ class TextClip(ImageClip):
         super().__init__(
                          clip_height=size[1],
                          clip_pixel_format=self._text['pixel_format'],
-                         clip_pixel_format_output=self._text['pixel_format'],
                          clip_width=size[0],
                          video_frames=video_frames,
                          **kwargs)
