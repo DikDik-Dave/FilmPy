@@ -5,21 +5,17 @@ AUDIO_CODECS = {
     'ogg': ["libvorbis"],
     'mp3': ["libmp3lame"],
     'wav': ["pcm_s16le", "pcm_s24le", "pcm_s32le"],
-    'm4a': ["libfdk_aac"]
-}
-FONT_EXTENSIONS = ['fon','ttf']
-
+    'm4a': ["libfdk_aac"]}
+FONT_EXTENSIONS = ['fon','ttf']                             # Standard extensions for a font file
 FFMPEG_BINARY = "ffmpeg.exe"
 FFPROBE_BINARY = 'ffprobe.exe'
-
+DEFAULT_FRAME_RATE = 30
+LOG_FILENAME = f"{__name__.split('.')[0]}.log"              # Default log file name to use
+STANDARD_FRAME_RATES = (24,25,30,50,60)                     # Standard frame rates
 VIDEO_CODECS = {'mp4': ["libx264", "libmpeg4", "aac"],
                 'mkv': ["libx264", "libmpeg4", "aac"],
                 'ogv': ['libvorbis'],
-                'webm': ["libvorbis"]
-                }
-
-# Default log file name to use
-LOG_FILENAME = f"{__name__.split('.')[0]}.log"
+                'webm': ["libvorbis"]}
 
 # ffmpeg pixel formats
 PIXEL_FORMATS = {
@@ -198,14 +194,69 @@ PIXEL_FORMATS = {
              'hardware_accelerated': False,
              'nb_components': 3,
              'bits_per_pixel': 4},
-
+    'rgb4_byte': {'bitstream': False,
+             'input': True,
+             'output': True,
+             'paletted': False,
+             'hardware_accelerated': False,
+             'nb_components': 3,
+             'bits_per_pixel': 4},
+    'nv12': {'bitstream': False,
+                  'input': True,
+                  'output': True,
+                  'paletted': False,
+                  'hardware_accelerated': False,
+                  'nb_components': 3,
+                  'bits_per_pixel': 12},
+    'nv21': {'bitstream': False,
+             'input': True,
+             'output': True,
+             'paletted': False,
+             'hardware_accelerated': False,
+             'nb_components': 3,
+             'bits_per_pixel': 12},
     'x2rgb10le': {'bitstream': False,
              'input': True,
              'output': True,
              'paletted': False,
              'hardware_accelerated': False,
              'nb_components': 3,
-             'bits_per_pixel': 30}
+             'bits_per_pixel': 30},
+    'abgr': {'bitstream': False,
+                  'input': True,
+                  'output': True,
+                  'paletted': False,
+                  'hardware_accelerated': False,
+                  'nb_components': 4,
+                  'bits_per_pixel': 32},
+    'bgra': {'bitstream': False,
+             'input': True,
+             'output': True,
+             'paletted': False,
+             'hardware_accelerated': False,
+             'nb_components': 4,
+             'bits_per_pixel': 32},
+    'gray16be': {'bitstream': False,
+             'input': True,
+             'output': True,
+             'paletted': False,
+             'hardware_accelerated': False,
+             'nb_components': 1,
+             'bits_per_pixel': 16},
+    'gray16le': {'bitstream': False,
+                 'input': True,
+                 'output': True,
+                 'paletted': False,
+                 'hardware_accelerated': False,
+                 'nb_components': 1,
+                 'bits_per_pixel': 16},
+    'yuv440p': {'bitstream': False,
+                 'input': True,
+                 'output': True,
+                 'paletted': False,
+                 'hardware_accelerated': False,
+                 'nb_components': 3,
+                 'bits_per_pixel': 16}
 }
 
 #TODO - Port and remove entries below
@@ -218,14 +269,6 @@ I.... = Supported Input  format for conversion
 ....B = Bitstream format
 FLAGS NAME            NB_COMPONENTS BITS_PER_PIXEL
 -----
-IO... rgb4_byte              3             4
-IO... nv12                   3            12
-IO... nv21                   3            12
-IO... abgr                   4            32
-IO... bgra                   4            32
-IO... gray16be               1            16
-IO... gray16le               1            16
-IO... yuv440p                3            16
 IO... yuvj440p               3            16
 IO... yuva420p               4            20
 IO... rgb48be                3            48
