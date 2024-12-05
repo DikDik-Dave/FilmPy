@@ -1,20 +1,36 @@
+from logging import getLogger
+
 from FilmPy.clips.ClipBase import ClipBase
 import numpy
+
+from FilmPy.constants import PIXEL_FORMATS
+
 
 class CompositeClip(ClipBase):
     """
     CompositeClip is a clip that is created from a composition of other clips
     """
     def __init__(self, clips:list,
-                 clip_background_color=(0,0,0),
+                 clip_background_color=None,
                  clip_end_time=None,
                  clip_height=None,
                  clip_width=None):
         """
         Instantiate a composite clip from other clips
 
+        :param clips: A list of clips to be composited. Clips are assumed to be in the order they are to be composited.
+        :param clip_background_color: Background color to use for the clip, will default to black if not provided
+        :param clip_end_time:
+        :param clip_height:
+        :param clip_width:
+        """
+        """
+        Instantiate a composite clip from other clips
+
         :param clips: list of clips to Composite. Element 0 is the base layer
         """
+        logger = getLogger(__name__)
+
         # Ensure we have valid data type
         if not isinstance(clips, list):
             raise ValueError(f"{type(self).__name__} expects clips to be a list.")
@@ -23,15 +39,16 @@ class CompositeClip(ClipBase):
         if len(clips) <= 1:
             raise ValueError(f"{type(self).__name__} expects clips to contain at least two clip objects.")
 
-        # Instantiate the Clip
-        super().__init__(clip_end_time=clip_end_time, clip_height=clip_height, clip_width=clip_width)
 
         # CompositeClip specific attributes
         self._clips = clips
 
         # Load clip data needed to composite the clip
         clip_data = {}
-        max_frames = 0
+        number_frames = 0
+        max_width = 0
+        max_height = 0
+        pixel_format_input = 'rgb24'
         for i in range(len(clips)):
             # Add the new clip to our clip data
             clip_data[i] = {'mask_frames': None, 'frames': None}
@@ -43,18 +60,36 @@ class CompositeClip(ClipBase):
             clip_data[i]['mask_frames'] = self._clips[i].get_mask_frames()
 
             # Set the max frames for this clip
-            if self._clips[i].number_frames > max_frames:
-                max_frames = self._clips[i].number_frames
+            if self._clips[i].number_frames > number_frames:
+                number_frames = self._clips[i].number_frames
+
+            max_width = self._clips[i].width if self._clips[i].width > max_width else max_width
+            max_height = self._clips[i].height if self._clips[i].height > max_height else max_height
+            pixel_format_input = 'rgba' if self._clips[i].pixel_format_input == 'rgba' else pixel_format_input
+
+        # Either use the provided size for the clip or if none was provided, use the calculated dimensions
+        clip_height = max_height if clip_height is None else clip_height
+        clip_width = max_width if clip_width is None else clip_width
+
+        # Get the number of components for this pixel format
+        number_components = PIXEL_FORMATS[pixel_format_input]['nb_components']
+
+        # Set the background color as needed
+        if clip_background_color is None:
+            clip_background_color = numpy.tile(0,number_components)
+
+        # Generate the blank frame
+        blank_frame = (numpy.tile(clip_background_color, clip_width * clip_height).
+               reshape(clip_height, clip_width, number_components).astype('uint8'))
 
         # Composite the frames
         composited_frames = []
-        blank_frame = (numpy.tile(clip_background_color, self.width * self.height).
-                       reshape(self.height, self.width, 3).astype('uint8'))
-        for frame_index in range(max_frames):
+
+        for frame_index in range(number_frames):
             # We are starting a new frame, so reset the composited frame
             composited_frame = None
 
-            # Loop through the clips and composite this frame
+            # Loop through the clips and composite them for this frame
             for clip_index in range(len(clips)):
                 # Get the clip frame, skip to the next clip if there is no frame for this clip
                 try:
@@ -69,11 +104,15 @@ class CompositeClip(ClipBase):
                 else:
                     composited_frame = numpy.where(clip_mask, clip_frame, blank_frame)
 
-            # Add it to our list of fames
+            # Add it to our list of frames
             composited_frames.append(composited_frame)
 
-        self.set_frames(composited_frames)
-
+        # Instantiate the Clip
+        super().__init__(clip_end_time=clip_end_time,
+                         clip_height=clip_height,
+                         clip_pixel_format_input=pixel_format_input,
+                         clip_width=clip_width,
+                         video_frames=composited_frames)
     ####################
     # Property Methods #
     ####################
@@ -156,12 +195,3 @@ class CompositeClip(ClipBase):
     ##################
     # Public Methods #
     ##################
-    def get_video_frames(self):
-        """
-        Get the video frame data associated to this clip
-        Note, This IS NOT the same as the frames that comprise the clip, and once set is not (meant to be) mutable
-
-        :return: array of RGB frame data
-        """
-        raise AttributeError(f"{type(self).__name__}.get_video_frames does not exist. "
-                             f"CompositeClips are not directly associated to video footage.")

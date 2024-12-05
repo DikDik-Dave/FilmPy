@@ -51,10 +51,10 @@ class ClipBase:
 
         # Clip specific attributes
         self._clip_audio = None                                                 # The audio data of the clip itself
-        self._clip_frames = [] if not clip_frames is None else clip_frames      # The frames of the clip itself
+        clip_frames = [] if not clip_frames is None else clip_frames      # The frames of the clip itself
         self._clip = {'end_time': clip_end_time,                                # End time in seconds
                            'fps': clip_fps,                                     # Frames per second for the clip
-                           'frames': self._clip_frames,                         # Frames that comprise the clip
+                           'frames': clip_frames,                               # Frames that comprise the clip
                            'height': None,                                      # Height (in pixels) of the clip
                            'include_audio': clip_include_audio,                 # Should the audio be included when rendered
                            'pixel_format_input': clip_pixel_format_input,       # Pixel format to use while video processing
@@ -85,18 +85,6 @@ class ClipBase:
         if isinstance(self._mask['behavior'], Enum):
             self._mask['behavior'] = self._mask['behavior'].value
 
-
-    ####################
-    # Expected Methods #
-    ####################
-    def get_video_frames(self):
-        """
-        Get the video frame data associated to this clip
-        Note, This IS NOT the same as the frames that comprise the clip, and once set is not (meant to be) mutable
-
-        :return: array of RGB frame data
-        """
-        raise NotImplementedError(f"{type(self).__name__}.get_video_frames has not been implemented")
 
     ############################
     # Property Methods - Audio #
@@ -938,9 +926,9 @@ class ClipBase:
         self._audio_frames = np.fromstring(completed_process.stdout, dtype=dt).reshape(-1, number_channels)
         return self._audio_frames
 
-    def get_mask_frames(self):
+    def get_mask_frames(self, pixel_format=None):
         """
-        Get the
+        Get the mask frames for this clip
         :return:
         """
 
@@ -948,9 +936,16 @@ class ClipBase:
         if self._mask['initialized']:
             return self._mask['frames']
 
+        # Default the pixel format to the clip's pixel_format_input value
+        if not pixel_format:
+            pixel_format = self.pixel_format_input
+
+        # Generate mask cell
+        number_components = PIXEL_FORMATS[pixel_format]['nb_components']
+        mask_cell = np.tile(True, number_components)
         # No mask exists, so we need to create one
         if not self._mask['frames']:
-            self._mask['frames'] = [np.tile((True,True,True), self.width * self.height).reshape(self.height, self.width, 3)]
+            self._mask['frames'] = [np.tile(mask_cell, self.width * self.height).reshape(self.height, self.width, number_components)]
 
         # If mask behavior is to loop, then create all the mask frames we need, and replace the mask frames we had
         if self._mask['behavior'] == MaskBehavior.LOOP_FRAMES.value:
@@ -973,14 +968,14 @@ class ClipBase:
         :return:
         """
         # Return the already created frames
-        if self._clip_frames:
-            return self._clip_frames
+        if self._clip['frames']:
+            return self._clip['frames']
 
         # No frames yet exist, copy the video data
         # TODO: respect clip start, end, etc
-        self._clip_frames = self.get_video_frames()
+        self._clip['frames'] = self.get_video_frames()
 
-        return self._clip_frames
+        return self._clip['frames']
 
     def get_video_frame(self,
                   frame_index:int=None,
@@ -1019,6 +1014,9 @@ class ClipBase:
 
         # Return the requested frame
         return frames[frame_index]
+
+    def get_video_frames(self):
+        return self._video['frames']
 
     def grayscale(self):
         """

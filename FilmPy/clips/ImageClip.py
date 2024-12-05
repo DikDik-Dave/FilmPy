@@ -86,9 +86,3 @@ class ImageClip(ClipBase):
                          clip_pixel_format_output=clip_pixel_format_output,
                          video_frames=video_frames,
                          **kwargs)
-
-    ##################
-    # Public Methods #
-    ##################
-    def get_video_frames(self):
-        return self._video['frames']
