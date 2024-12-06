@@ -69,7 +69,6 @@ class CompositeClip(ClipBase):
             clip_data[i]['mask_frames'] = self._clips[i].get_mask_frames()
 
             # Load the size for the ith clip
-            print(f"Size {self._clips[i].size}")
             clip_data[i]['size'] = self._clips[i].size
 
             # Load the position for the ith clip
