@@ -43,15 +43,24 @@ class CompositeClip(ClipBase):
         # CompositeClip specific attributes
         self._clips = clips
 
+        # Calculate size and determine the pixel format we will be using for this clip
+        pixel_format = 'rgb24'
+        size = [0,0]
+        for clip in clips:
+            pixel_format = 'rgba' if clip.pixel_format == 'rgba' else pixel_format
+            size[0] = clip.width if clip.width > size[0] else size[0]
+            size[1] = clip.height if clip.height > size[1] else size[1]
+
+        # Set the max frames for this clip
+
+
         # Load clip data needed to composite the clip
         clip_data = {}
         number_frames = 0
-        max_width = 0
-        max_height = 0
-        pixel_format_input = 'rgb24'
+
         for i in range(len(clips)):
             # Add the new clip to our clip data
-            clip_data[i] = {'mask_frames': None, 'frames': None}
+            clip_data[i] = {'mask_frames': None, 'frames': None, 'size': None, 'position': None}
 
             # Load frames for the ith clip
             clip_data[i]['frames'] = self._clips[i].get_frames()
@@ -59,28 +68,34 @@ class CompositeClip(ClipBase):
             # Load the mask for the ith clip
             clip_data[i]['mask_frames'] = self._clips[i].get_mask_frames()
 
-            # Set the max frames for this clip
+            # Load the size for the ith clip
+            print(f"Size {self._clips[i].size}")
+            clip_data[i]['size'] = self._clips[i].size
+
+            # Load the position for the ith clip
+            clip_data[i]['position'] = self._clips[i].x,self._clips[i].y
+
             if self._clips[i].number_frames > number_frames:
                 number_frames = self._clips[i].number_frames
 
-            max_width = self._clips[i].width if self._clips[i].width > max_width else max_width
-            max_height = self._clips[i].height if self._clips[i].height > max_height else max_height
-            pixel_format_input = 'rgba' if self._clips[i].pixel_format_input == 'rgba' else pixel_format_input
 
         # Either use the provided size for the clip or if none was provided, use the calculated dimensions
-        clip_height = max_height if clip_height is None else clip_height
-        clip_width = max_width if clip_width is None else clip_width
+        clip_height = size[1] if clip_height is None else clip_height
+        clip_width = size[0] if clip_width is None else clip_width
 
         # Get the number of components for this pixel format
-        number_components = PIXEL_FORMATS[pixel_format_input]['nb_components']
+        number_components = PIXEL_FORMATS[pixel_format]['nb_components']
 
         # Set the background color as needed
         if clip_background_color is None:
             clip_background_color = numpy.tile(0,number_components)
 
-        # Generate the blank frame
+        # Generate the blank frame and mask
         blank_frame = (numpy.tile(clip_background_color, clip_width * clip_height).
                reshape(clip_height, clip_width, number_components).astype('uint8'))
+
+        blank_mask_cell = numpy.tile(False, number_components)
+        blank_mask = numpy.tile(blank_mask_cell, clip_width * clip_height).reshape(clip_height, clip_width, number_components).astype('uint8')
 
         # Composite the frames
         composited_frames = []
@@ -93,24 +108,40 @@ class CompositeClip(ClipBase):
             for clip_index in range(len(clips)):
                 # Get the clip frame, skip to the next clip if there is no frame for this clip
                 try:
-                    clip_frame = clip_data[clip_index]['frames'][frame_index]
-                    clip_mask = clip_data[clip_index]['mask_frames'][frame_index]
+                    composite_frame = clip_data[clip_index]['frames'][frame_index]
+                    composite_mask = clip_data[clip_index]['mask_frames'][frame_index]
+                    composite_width, composite_height = clip_data[clip_index]['size']
+                    composite_x, composite_y = clip_data[clip_index]['position']
+                    row_end = composite_y+composite_height
+                    col_end = composite_x+composite_width
                 except IndexError:
                     continue
 
+                # Create the broadcast frame and mask from the blank frame and mask respectively
+                broadcast_frame = blank_frame
+                broadcast_mask = blank_mask
+
+                # Broadcast the clip's frame to a frame of the correct dimensions
+                broadcast_frame[composite_y:row_end,composite_x:col_end] = composite_frame
+
+                # Broadcast the clip's mask to a mask of the correct dimensions
+                broadcast_mask[composite_y:row_end,composite_x:col_end] = composite_mask
+
                 # Composite this clip onto the frame
                 if composited_frame is not None:
-                    composited_frame = numpy.where(clip_mask, clip_frame, composited_frame)
+                    composited_frame = numpy.where(broadcast_mask, broadcast_frame, composited_frame)
                 else:
-                    composited_frame = numpy.where(clip_mask, clip_frame, blank_frame)
+                    # Composite the against the blank frame
+                    composited_frame = numpy.where(broadcast_mask, broadcast_frame, blank_frame)
+
 
             # Add it to our list of frames
             composited_frames.append(composited_frame)
 
-        # Instantiate the Clip
+        # Instantiate the ClipBase
         super().__init__(clip_end_time=clip_end_time,
                          clip_height=clip_height,
-                         clip_pixel_format_input=pixel_format_input,
+                         clip_pixel_format=pixel_format,
                          clip_width=clip_width,
                          video_frames=composited_frames)
     ####################
