@@ -32,7 +32,9 @@ class ClipBase:
                  video_frames=None
                  ):
         """
-        Initialize this Clip
+        Base class for all Clip classes.
+        Stores all common logic / attributes of a clip.
+        It is not meant to be instantiated directly.
 
         :param clip_width:
         :param clip_height:
@@ -49,27 +51,27 @@ class ClipBase:
         self._audio_frames = audio_frames   # Primary Audio Frame Data
 
         # Clip specific attributes
-        self._clip_audio = None                                                 # The audio data of the clip itself
+        self._clip_audio = None                                           # The audio data of the clip itself
         clip_frames = [] if not clip_frames is None else clip_frames      # The frames of the clip itself
-        self._clip = {'end_time': clip_end_time,  # End time in seconds
-                           'fps': clip_fps,  # Frames per second for the clip
-                           'frames': clip_frames,  # Frames that comprise the clip
-                           'height': None,  # Height (in pixels) of the clip
-                           'include_audio': clip_include_audio,  # Should the audio be included when rendered
-                           'pixel_format': clip_pixel_format,  # Pixel format to use while video processing
-                           'number_frames': None,  # Number of video frames in the clip
-                           'position_x': int(clip_position[0]),  # x coordinate for the clip
-                           'position_y': int(clip_position[1]),  # y coordinate for the clip
-                           'resolution': None,  # Resolution string '{width}x{height}'
-                           'start_time': clip_start_time,  # Start time in seconds
-                           'width': None,  # Width (in pixels) of the clip
+        self._clip = {'end_time': clip_end_time,                          # End time in seconds
+                           'fps': clip_fps,                               # Frames per second for the clip
+                           'frames': clip_frames,                         # Frames that comprise the clip
+                           'height': None,                                # Height (in pixels) of the clip
+                           'include_audio': clip_include_audio,           # Should the audio be included when rendered
+                           'pixel_format': clip_pixel_format,             # Pixel format to use while video processing
+                           'number_frames': None,                         # Number of video frames in the clip
+                           'position_x': int(clip_position[0]),           # x coordinate for the clip
+                           'position_y': int(clip_position[1]),           # y coordinate for the clip
+                           'resolution': None,                            # Resolution string '{width}x{height}'
+                           'start_time': clip_start_time,                 # Start time in seconds
+                           'width': None,                                 # Width (in pixels) of the clip
                       }
 
         # Video specific attributes
-        video_frames = [] if not video_frames else video_frames  # Frames that make up the video
-        self._video = {'end_time': video_end_time,
-                            'fps': video_fps,
-                            'frames': video_frames,
+        video_frames = [] if not video_frames else video_frames         # Frames that make up the video
+        self._video = {'end_time': video_end_time,                      # Duration of the video
+                            'fps': video_fps,                           # FPS for the underlying video
+                            'frames': video_frames,                     # Frames for the underlying video
                             'height': clip_height,
                             'number_frames': len(video_frames),
                             'resolution': f"{clip_width}x{clip_height}",
@@ -79,7 +81,9 @@ class ClipBase:
         self._file_path = file_path  # Path to whatever file is associated to this clip
 
         # Mask specific attributes
-        self._mask = {'frames':mask_frames, 'behavior': mask_behavior, 'initialized': False}
+        self._mask = {'frames':mask_frames,
+                      'behavior': mask_behavior,
+                      'initialized': False}
         if isinstance(self._mask['behavior'], Enum):
             self._mask['behavior'] = self._mask['behavior'].value
 
@@ -270,6 +274,13 @@ class ClipBase:
 
         self._clip['resolution'] = f"{self.width}x{self.height}"
         return self._clip['resolution']
+
+    @property
+    def size(self):
+        """
+        Size (width,height) of the clip
+        """
+        return self.width, self.height
 
     @property
     def start_time(self):
@@ -1185,7 +1196,7 @@ class ClipBase:
                    "-loglevel", "error",                # Only notify us of errors
                    "-s", self.resolution,
                    '-f','rawvideo',
-                   '-pix_fmt', self.pixel_format,       # Format that we will be sending the data to ffmpeg in
+                   '-pix_fmt', self.pixel_format, # Format that we will be sending the data in
                    '-i', '-',
                    file_path
                    ]
@@ -1331,3 +1342,5 @@ class ClipBase:
             process.stdin.write(frame.tobytes())
         process.stdin.close()
         process.wait()
+
+        logger.info(f"Video successfully written to '{file_path}'")
