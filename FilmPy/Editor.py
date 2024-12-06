@@ -28,7 +28,17 @@ class Editor:
 
         :return ColorClip: a clip containing a single color
         """
-        return ColorClip(*args, **kwargs)
+
+        # Process positional arguments
+        for arg in args:
+            # We got a two element tuple, treat it to be the size parameter
+            if isinstance(arg, (tuple,list)) and len(arg) == 2:
+                kwargs.update({'size': arg})
+            # We got a tuple with either 3 or 4 elements, treat it to be the color parameter
+            if isinstance(arg, (tuple,list)) and len(arg) in (3,4):
+                kwargs.update({'color': arg})
+
+        return ColorClip(**kwargs)
 
     @classmethod
     def composite_clip(cls, *args, **kwargs):
