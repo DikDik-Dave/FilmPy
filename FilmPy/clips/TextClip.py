@@ -7,7 +7,7 @@ class TextClip(ImageClip):
     def __init__(self,
                  align="left",
                  background_color="green",
-                 end_time: int = None,
+                 clip_end_time: int = None,
                  fps: int = DEFAULT_FRAME_RATE,
                  fill="white",
                  font_path=None,
@@ -35,7 +35,7 @@ class TextClip(ImageClip):
         """
 
         # Ensure end_time is a number
-        if not isinstance(end_time, (int, float)):
+        if not isinstance(clip_end_time, (int, float)):
             raise ValueError(f'{type(self).__name__}(end_time=) must be a number')
 
 
@@ -76,11 +76,12 @@ class TextClip(ImageClip):
         # Create a frame of the appropriate size
         video_frames = []
         frame = np.array(image).astype('uint8')
-        for x in range(int(fps * end_time)):
+        for _ in range(int(fps * clip_end_time)):
             video_frames.append(frame)
 
         # Initialize the ImageClip
         super().__init__(
+                         clip_end_time=clip_end_time,
                          clip_height=size[1],
                          clip_pixel_format=self._text['pixel_format'],
                          clip_width=size[0],
