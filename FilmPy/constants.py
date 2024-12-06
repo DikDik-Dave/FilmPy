@@ -256,7 +256,35 @@ PIXEL_FORMATS = {
                  'paletted': False,
                  'hardware_accelerated': False,
                  'nb_components': 3,
-                 'bits_per_pixel': 16}
+                 'bits_per_pixel': 16},
+    'yuvj440p': {'bitstream': False,
+                'input': True,
+                'output': True,
+                'paletted': False,
+                'hardware_accelerated': False,
+                'nb_components': 3,
+                'bits_per_pixel': 16},
+    'yuva420p': {'bitstream': False,
+                 'input': True,
+                 'output': True,
+                 'paletted': False,
+                 'hardware_accelerated': False,
+                 'nb_components': 4,
+                 'bits_per_pixel': 20},
+    'rgb48be': {'bitstream': False,
+              'input': True,
+              'output': True,
+              'paletted': False,
+              'hardware_accelerated': False,
+              'nb_components': 3,
+              'bits_per_pixel': 48},
+    'rgb48le': {'bitstream': False,
+                'input': True,
+                'output': True,
+                'paletted': False,
+                'hardware_accelerated': False,
+                'nb_components': 3,
+                'bits_per_pixel': 48}
 }
 
 #TODO - Port and remove entries below
@@ -269,10 +297,6 @@ I.... = Supported Input  format for conversion
 ....B = Bitstream format
 FLAGS NAME            NB_COMPONENTS BITS_PER_PIXEL
 -----
-IO... yuvj440p               3            16
-IO... yuva420p               4            20
-IO... rgb48be                3            48
-IO... rgb48le                3            48
 IO... rgb565be               3            16
 IO... rgb565le               3            16
 IO... rgb555be               3            15
