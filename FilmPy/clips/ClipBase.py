@@ -482,14 +482,45 @@ class ClipBase:
     ###################
     # Private Methods #
     ###################
-    @staticmethod
-    def _to_radians(angle) -> float:
+    def _write_audio(self,
+                     file_path=None,
+                     fps=44100,
+                     number_bytes=None,
+                     number_channels=None,
+                     ffmpeg_log_level='error'
+                     ):
         """
+        Write audio for this clip to file
 
-        :param angle: Angle in degrees
+        :param file_name:
+        :param fps:
+        :param number_channels:
         :return:
         """
-        return angle * (np.pi / 180)
+        logger = getLogger(__name__)
+
+        audio_data = self.get_audio_frames(self._file_path, fps, number_bytes, number_channels)
+
+        # FFMPEG Command to write audio to a file
+        ffmpeg_command = [
+            FFMPEG_BINARY, '-y',
+            '-loglevel', ffmpeg_log_level,                          # Set ffmpeg's log level accordingly
+            "-f", 's%dle' % (8 * number_bytes),
+            "-acodec", 'pcm_s%dle' % (8 * number_bytes),
+            '-ar', "%d" % fps,
+            '-ac', "%d" % number_channels,
+            '-i', '-',
+            file_path]
+
+        # Log the ffmpeg call we will make
+        logger.debug(f"ffmpeg command \"{' '.join(ffmpeg_command)}\"")
+
+        # Write all the data (via ffmpeg) to the temp file
+        process = subprocess.Popen(ffmpeg_command, stdin=subprocess.PIPE, bufsize=10 ** 8)
+        process.stdin.write(audio_data.tobytes())
+        process.stdin.close()
+        process.wait()
+
 
     ##################
     # Public Methods #
@@ -1173,6 +1204,48 @@ class ClipBase:
         # Return this object to enable method chaining
         return self
 
+    def set_audio_frames(self, value):
+        """
+        Set the audio data for this clip
+        :return:
+        """
+        if not isinstance(value, np.ndarray):
+            raise ValueError(f"{type(self).__name__}.audio_data must be an numpy array")
+
+        self._audio_frames = value.astype(np.int16)
+
+    def set_frames(self, value):
+        """
+        Set the new clip frames
+        """
+        if not isinstance(value, list):
+            raise ValueError(f"{type(self).__name__}.clip_frames must be a list of numpy.array objects")
+
+        self._clip['frames'] = value
+
+    def write_audio(self, file_path:str,
+                    ffmpeg_log_level='error'):
+        """
+        Write the audio associated to this clip to an audio file
+
+        :param file_path: Where to write the audio file to
+        :param ffmpeg_log_level: Sets the log level of ffmpeg
+
+        :return self: Enables method chaining
+        """
+        logger = getLogger(__name__)
+
+        self._write_audio(file_path=file_path,
+                          fps=44100,
+                          number_channels=self.audio_channels,
+                          number_bytes=2,
+                          ffmpeg_log_level=ffmpeg_log_level)
+
+        logger.info(f"Audio file created '{file_path}'")
+
+        # Enable method chaining
+        return self
+
     def write_image(self, file_path, frame_index:int=0, frame_time:int=None) -> bool:
         """
         Write a single frame out as an image file
@@ -1215,25 +1288,6 @@ class ClipBase:
 
         # File was successfully created
         return True
-
-    def set_audio_frames(self, value):
-        """
-        Set the audio data for this clip
-        :return:
-        """
-        if not isinstance(value, np.ndarray):
-            raise ValueError(f"{type(self).__name__}.audio_data must be an numpy array")
-
-        self._audio_frames = value.astype(np.int16)
-
-    def set_frames(self, value):
-        """
-        Set the new clip frames
-        """
-        if not isinstance(value, list):
-            raise ValueError(f"{type(self).__name__}.clip_frames must be a list of numpy.array objects")
-
-        self._clip_frames = value
 
     def write_video(self,
                     file_path,
@@ -1290,39 +1344,21 @@ class ClipBase:
 
         # If we have an audio stream and we are to write audio
         if self._audio and write_audio:
-            # TODO: Pull this data from audio_stream or somewhere...
-            # Audio Info
-            fps = 44100
-            number_channels = self.audio_channels
-            number_bytes = 2
-            temp_audio_file_name = f"{file_name}_wvf_snd.tmp.{audio_extension}"
-            audio_data = self.get_audio_frames(self._file_path, fps, number_bytes, number_channels)
-
-            # FFMPEG Command to write audio to a file
-            ffmpeg_command = [
-                FFMPEG_BINARY, '-y',
-                '-loglevel', ffmpeg_log_level,                          # Set ffmpeg's log level accordingly
-                "-f", 's%dle' % (8 * number_bytes),
-                "-acodec", 'pcm_s%dle' % (8 * number_bytes),
-                '-ar', "%d" % fps,
-                '-ac', "%d" % number_channels,
-                '-i', '-',
-                temp_audio_file_name]
-
-            # Log the ffmpeg call we will make
-            logger.debug(f"ffmpeg command \"{' '.join(ffmpeg_command)}\"")
-
-            # Write all the data (via ffmpeg) to the temp file
-            process = subprocess.Popen(ffmpeg_command, stdin=subprocess.PIPE, bufsize=10 ** 8)
-            process.stdin.write(audio_data.tobytes())
-            process.stdin.close()
-            process.wait()
+            # Write the audio to disk
+            audio_file_name = f"{file_name}_wvf_snd.tmp.{audio_extension}"
+            self._write_audio(file_path=audio_file_name,
+                              fps=44100,
+                              number_channels=self.audio_channels,
+                              number_bytes=2,
+                              ffmpeg_log_level=ffmpeg_log_level)
 
             # Extend the command to pass in the audio we just recorded
             command.extend([
-                '-i', temp_audio_file_name,
+                '-i', audio_file_name,
                 '-acodec', 'copy'
             ])
+
+            # TODO: Delete the temp file
         else:
             command.extend(['-an']) # tells FFMPEG not to expect any audio
 
@@ -1343,4 +1379,4 @@ class ClipBase:
         process.stdin.close()
         process.wait()
 
-        logger.info(f"Video successfully written to '{file_path}'")
+        logger.info(f"Video written to '{file_path}'")
