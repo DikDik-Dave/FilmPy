@@ -284,7 +284,21 @@ PIXEL_FORMATS = {
                 'paletted': False,
                 'hardware_accelerated': False,
                 'nb_components': 3,
-                'bits_per_pixel': 48}
+                'bits_per_pixel': 48},
+    'rgb565be': {'bitstream': False,
+                'input': True,
+                'output': True,
+                'paletted': False,
+                'hardware_accelerated': False,
+                'nb_components': 3,
+                'bits_per_pixel': 16},
+    'rgb565le': {'bitstream': False,
+                 'input': True,
+                 'output': True,
+                 'paletted': False,
+                 'hardware_accelerated': False,
+                 'nb_components': 3,
+                 'bits_per_pixel': 16}
 }
 
 #TODO - Port and remove entries below
@@ -297,8 +311,6 @@ I.... = Supported Input  format for conversion
 ....B = Bitstream format
 FLAGS NAME            NB_COMPONENTS BITS_PER_PIXEL
 -----
-IO... rgb565be               3            16
-IO... rgb565le               3            16
 IO... rgb555be               3            15
 IO... rgb555le               3            15
 IO... bgr565be               3            16
@@ -459,10 +471,14 @@ IO... nv42                   3            24
 I.... y210le                 3            20
 '''
 
-# Legal values that govern how mask frame data will be interpreted
-class MaskBehavior(Enum):
-    LOOP_FRAMES = 0
-    FINITE_LIST = 1
+# Legal values that govern how mask and clip data will be interpreted
+class Behavior(Enum):
+    """
+    Governs how the library should behave when the clip's end time exceeds the material we have
+    """
+    ENFORCE_LIMIT = 0         # Causes the library to throw an error when out of bounds
+    LOOP_FRAMES   = 1         # Loop over the existing material as needed
+    PAD           = 2         # Add blank frames as needed
 
 # PIL Mapping Enum for Resampling, used by resize
 class Resampling(Enum):
