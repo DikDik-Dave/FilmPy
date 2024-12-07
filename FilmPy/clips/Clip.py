@@ -17,6 +17,7 @@ class Clip(ClipBase):
                  clip_frames=None,
                  clip_start_time=0,
                  clip_end_time=None,
+                 clip_size=(None,None),
                  clip_include_audio=True):
         """
         Initialize a VideoClip from either a file or via direct frame data
@@ -26,7 +27,7 @@ class Clip(ClipBase):
         :param clip_end_time: When does the clip end
         :param clip_include_audio: Should the audio be written for this clip
         """
-        # Check to make sure we did not recieve potentially conflicting inputs
+        # Check to make sure we did not receive potentially conflicting inputs
         if clip_frames and file_path:
             msg = (f" {type(self).__name__} - Conflicting input received. "
                    f"Either provide frames or video_path, not both.")
@@ -38,11 +39,11 @@ class Clip(ClipBase):
 
         # Initialize Clip, we will set the frame_width, frame_height, and video_fps values
         # after we have processed the metadata for this clip
-        super().__init__(clip_width=None, clip_height=None, clip_start_time=clip_start_time,
+        super().__init__(clip_width=clip_size[0], clip_height=clip_size[1], clip_start_time=clip_start_time,
                          clip_end_time=clip_end_time, video_fps=None, clip_include_audio=clip_include_audio,
                          clip_frames=clip_frames, file_path=file_path)
 
-        # If we the clip is associated to a file, load information about the file
+        # If the clip is associated to a file, load information about the file
         if file_path:
             self._set_file_information(file_path, clip_end_time)
 
