@@ -69,10 +69,10 @@ class Clip(ClipBase):
         self._media = json.loads(ffprobe.execute())
         self._video.update(self._media['streams'][0])
 
-        # If we have audio, load its audio information
+        # If we have audio, load the audio information
         if len(self._media['streams']) > 1:
-            self._audio_info = self._media['streams'][1]
-            self._audio_info['sample_rate'] = int(self._audio_info['sample_rate'])
+            self._audio.update(self._media['streams'][1])
+            self._audio['sample_rate'] = int(self._audio['sample_rate'])
 
         # Get the number of frames for the video
         logger.debug(f"Retrieving number_frames from ffprobe")
@@ -89,7 +89,6 @@ class Clip(ClipBase):
         self._video['number_frames'] = int(completed_process.stdout)
 
         # Call ffmpeg to get additional information about the file
-
         ffmpeg_info_command = [FFMPEG_BINARY, "-hide_banner", "-i", video_path]
         logger.debug(f'Calling ffmpeg "{' '.join(ffmpeg_info_command)}"')
         completed_process = subprocess.run(ffmpeg_info_command, capture_output=True)
@@ -142,7 +141,7 @@ class Clip(ClipBase):
         command = [FFMPEG_BINARY,
                    '-i', self._file_path,                       # File we will load video frames from
                    '-f', 'image2pipe',                          # Format is 'image2pipe'
-                   '-pix_fmt', self.pixel_format_input,         # Pixel format we will use internally
+                   '-pix_fmt', self.pixel_format,               # Pixel format we will use internally
                    '-vcodec', 'rawvideo',                       # Set video codec to 'rawvideo'
                    '-']                                         # Pipe the output
 
