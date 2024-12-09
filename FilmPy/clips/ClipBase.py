@@ -14,7 +14,26 @@ class ClipBase:
     """
 
     def __init__(self,
+                 audio_avg_frame_rate=None,
+                 audio_bits_per_sample=None,
+                 audio_bit_rate=None,
+                 audio_channels=None,
+                 audio_channel_layout=None,
+                 audio_codec_name=None,
+                 audio_codec_long_name=None,
+                 audio_codec_tag_string=None,
+                 audio_disposition=None,
+                 audio_duration=None,
+                 audio_duration_ts=None,
                  audio_frames=None,
+                 audio_nb_frames=None,
+                 audio_r_frame_rate=None,
+                 audio_sample_fmt=None,
+                 audio_sample_rate=None,
+                 audio_start_pts=None,
+                 audio_start_time=None,
+                 audio_time_base=None,
+                 clip_behavior=Behavior.ENFORCE_LIMIT.value,
                  clip_end_time=None,
                  clip_fps=30,
                  clip_start_time=0,
@@ -26,10 +45,41 @@ class ClipBase:
                  clip_position=(0,0),
                  clip_pixel_format='rgb24',
                  mask_frames=None,
-                 mask_behavior=MaskBehavior.LOOP_FRAMES,
+                 mask_behavior=Behavior.LOOP_FRAMES.value,
+                 video_avg_frame_rate=None,
+                 video_bit_rate=None,
+                 video_bits_per_raw_sample=None,
+                 video_chroma_location=None,
+                 video_closed_captions=None,
+                 video_codec_long_name=None,
+                 video_codec_name=None,
+                 video_codec_tag_string=None,
+                 video_coded_height=None,
+                 video_coded_width=None,
+                 video_disposition=None,
+                 video_duration=None,
+                 video_duration_ts=None,
+                 video_has_b_frames=None,
+                 video_height=None,
+                 video_is_avc=None,
                  video_end_time=None,
                  video_fps=None,
-                 video_frames=None
+                 video_frames=None,
+                 video_level=None,
+                 video_nal_length_size=None,
+                 video_nb_frames=None,
+                 video_number_frames=None,
+                 video_pix_fmt=None,
+                 video_profile=None,
+                 video_r_frame_rate=None,
+                 video_refs=None,
+                 video_start=None,
+                 video_start_pts=None,
+                 video_start_time=None,
+                 video_time_base=None,
+                 video_tbr=None,
+                 video_width=None,
+                 **kwargs
                  ):
         """
         Base class for all Clip classes.
@@ -42,18 +92,43 @@ class ClipBase:
         :param clip_end_time:
         :param video_fps:
         """
+        # Get a logger
+        logger = getLogger(__name__)
+
+        for kwarg, kwval in kwargs.items():
+            logger.debug(f'Unknown argument: {kwarg} - {kwval}')
+
         # Ensure the clip pixel format is valid
         if clip_pixel_format not in PIXEL_FORMATS.keys():
             raise ValueError(f"'{clip_pixel_format}' is not a valid value for clip_pixel_format.")
 
         # Audio Specific Attributes
-        self._audio = {}               # Audio metadata
+        self._audio = { 'average_frame_rate': audio_avg_frame_rate,
+                        'bits_per_sample': audio_bits_per_sample,
+                        'bit_rate': audio_bit_rate,
+                        'codec_name': audio_codec_name,
+                        'codec_long_name': audio_codec_long_name,
+                        'codec_tag_string': audio_codec_tag_string,
+                        'channel_layout': audio_channel_layout,
+                        'channels': audio_channels,
+                        'disposition': audio_disposition,
+                        'duration': audio_duration,
+                        'duration_ts': audio_duration_ts,
+                        'number_frames': audio_nb_frames,
+                        'r_frame_rate': audio_r_frame_rate,
+                        'sample_format': audio_sample_fmt,
+                        'sample_rate': audio_sample_rate,
+                        'start_time': audio_start_time,
+                        'time_base': audio_time_base,
+                        }               # Audio metadata
         self._audio_frames = audio_frames   # Primary Audio Frame Data
 
         # Clip specific attributes
         self._clip_audio = None                                           # The audio data of the clip itself
         clip_frames = [] if not clip_frames is None else clip_frames      # The frames of the clip itself
-        self._clip = {'end_time': clip_end_time,                          # End time in seconds
+        self._clip = {
+                           'behavior': clip_behavior,
+                           'end_time': clip_end_time,                     # End time of the clip itself
                            'fps': clip_fps,                               # Frames per second for the clip
                            'frames': clip_frames,                         # Frames that comprise the clip
                            'height': None,                                # Height (in pixels) of the clip
@@ -69,13 +144,40 @@ class ClipBase:
 
         # Video specific attributes
         video_frames = [] if not video_frames else video_frames         # Frames that make up the video
-        self._video = {'end_time': video_end_time,                      # Duration of the video
+        self._video = {     'average_frame_rate': video_avg_frame_rate,
+                            'bit_rate': video_bit_rate,
+                            'bits_per_raw_sample': video_bits_per_raw_sample,
+                            'chroma_location': video_chroma_location,
+                            'closed_captions': video_closed_captions,
+                            'codec_long_name': video_codec_long_name,
+                            'codec_name': video_codec_name,
+                            'codec_tag_string': video_codec_tag_string,
+                            'coded_height': video_coded_height,
+                            'coded_width': video_coded_width,
+                            'disposition': video_disposition,
+                            'duration': video_duration,
+                            'duration_ts': video_duration_ts,
+                            'end_time': video_end_time,                 # Duration of the video
                             'fps': video_fps,                           # FPS for the underlying video
                             'frames': video_frames,                     # Frames for the underlying video
-                            'height': clip_height,
-                            'number_frames': len(video_frames),
+                            'has_b_frames': video_has_b_frames,
+                            'is_avc': video_is_avc,
+                            'height': video_height,
+                            'level': video_level,
+                            'nal_length_size': video_nal_length_size,
+                            'number_frames': video_number_frames,
+                            'nb_frames': video_nb_frames,
+                            'pixel_format': video_pix_fmt,
+                            'profile': video_profile,
+                            'refs': video_refs,
                             'resolution': f"{clip_width}x{clip_height}",
-                            'width': clip_width}
+                            'r_frame_rate': video_r_frame_rate,
+                            'start': video_start,
+                            'start_pts': video_start_pts,
+                            'start_time': video_start_time,
+                            'time_base': video_time_base,
+                            'tbr': video_tbr,
+                            'width': video_width}
 
         # File specific attributes
         self._file_path = file_path  # Path to whatever file is associated to this clip
@@ -120,12 +222,28 @@ class ClipBase:
     # Property Methods - Clip Attributes #
     ######################################
     @property
+    def behavior(self) -> int:
+        """
+        Governs how the clip should behave when given an end time that is out of bounds
+        """
+        return self._clip['behavior']
+
+    @behavior.setter
+    def behavior(self, value):
+        """
+        Set the behavior attribute
+        :param value:
+        :return:
+        """
+        self._clip['behavior'] = int(value)
+
+    @property
     def end_time(self):
         """
         End time of the clip in seconds
         """
         # If the end time for the clip has already been set, return it
-        if self._clip['end_time']:
+        if ('end_time' in self._clip) and self._clip['end_time']:
             return self._clip['end_time']
 
         # Default the end_time of the clip to the video end time
@@ -140,6 +258,7 @@ class ClipBase:
         Set the end time for the clip
 
         :param value: End time of the clip in seconds
+        :raises ValueError: When end time is longer than the clip AND clip behavior is set to ENFORCE_LIMIT
         """
         self._clip['end_time'] = float(value)
 
@@ -960,7 +1079,7 @@ class ClipBase:
             self._mask['frames'] = [np.tile(mask_cell, self.width * self.height).reshape(self.height, self.width, number_components)]
 
         # If mask behavior is to loop, then create all the mask frames we need, and replace the mask frames we had
-        if self._mask['behavior'] == MaskBehavior.LOOP_FRAMES.value:
+        if self._mask['behavior'] == Behavior.LOOP_FRAMES.value:
             looped_mask_frames = []
             for frame_index in range(self.number_frames):
                 mask_frame_index = frame_index % len(self._mask['frames'])
