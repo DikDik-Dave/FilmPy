@@ -18,7 +18,8 @@ class Clip(ClipBase):
                  clip_start_time=0,
                  clip_end_time=None,
                  clip_size=(None,None),
-                 clip_include_audio=True):
+                 clip_include_audio=True,
+                 **kwargs):
         """
         Initialize a VideoClip from either a file or via direct frame data
 
@@ -37,27 +38,41 @@ class Clip(ClipBase):
                    f"Either provide frames or video_path.")
             raise ValueError(msg)
 
-        # Initialize Clip, we will set the frame_width, frame_height, and video_fps values
-        # after we have processed the metadata for this clip
-        super().__init__(clip_width=clip_size[0], clip_height=clip_size[1], clip_start_time=clip_start_time,
-                         clip_end_time=clip_end_time, video_fps=None, clip_include_audio=clip_include_audio,
-                         clip_frames=clip_frames, file_path=file_path)
-
         # If the clip is associated to a file, load information about the file
         if file_path:
-            self._set_file_information(file_path, clip_end_time)
+            kwargs.update(self._set_file_information(file_path))
+
+        # Initialize Clip, we will set the frame_width, frame_height, and video_fps values
+        # after we have processed the metadata for this clip
+        super().__init__(clip_width=clip_size[0],
+                         clip_height=clip_size[1],
+                         clip_start_time=clip_start_time,
+                         clip_end_time=clip_end_time,
+                         clip_include_audio=clip_include_audio,
+                         clip_frames=clip_frames,
+                         file_path=file_path,
+                         **kwargs)
+
+
 
 
     ###################
     # Private Methods #
     ###################
-    def _set_file_information(self, video_path, end_time):
+    @classmethod
+    def _set_file_information(cls, video_path):
         """
         Set the video information about video files
+
         :param video_path: Path to the video
-        :param end_time: End time of the clip
+
+        :returns keyword_arguments: Keyword arguments that were found parsing the metadata
         """
+        # Get a logger
         logger = getLogger(__name__)
+
+        # Initialize the dictionary of values
+        keyword_arguments = {}
 
         # Call ffprobe to get information about the file
         logger.debug(f"Retrieving data from ffprobe")
@@ -67,13 +82,16 @@ class Clip(ClipBase):
             show_streams=None,
         )
 
-        self._media = json.loads(ffprobe.execute())
-        self._video.update(self._media['streams'][0])
+        # Build the keyword arguments dictionary
+        ignore_keys = ['index', 'codec_type', 'codec_tag', 'tags']
+        media = json.loads(ffprobe.execute())
+        for stream in media['streams']:
+            for key, value in stream.items():
+                if key not in ignore_keys:
+                    new_key = f"{stream['codec_type']}_{key}"
+                    keyword_arguments[new_key] = value
 
-        # If we have audio, load the audio information
-        if len(self._media['streams']) > 1:
-            self._audio.update(self._media['streams'][1])
-            self._audio['sample_rate'] = int(self._audio['sample_rate'])
+        # keyword_arguments['resolution'] = f"{keyword_arguments['width']}x{keyword_arguments['height']}"
 
         # Get the number of frames for the video
         logger.debug(f"Retrieving number_frames from ffprobe")
@@ -87,7 +105,7 @@ class Clip(ClipBase):
                            video_path]
 
         completed_process = subprocess.run(ffprobe_command, capture_output=True)
-        self._video['number_frames'] = int(completed_process.stdout)
+        keyword_arguments['video_number_frames'] = int(completed_process.stdout)
 
         # Call ffmpeg to get additional information about the file
         ffmpeg_info_command = [FFMPEG_BINARY, "-hide_banner", "-i", video_path]
@@ -98,31 +116,28 @@ class Clip(ClipBase):
                 duration, start, bit_rate = line.split(b',')
 
                 # Process the duration
-                hours, minutes, seconds = duration.strip(b'Duration: ').split(b':')
-                self._video['duration'] = (int(hours) * 60 * 60) + (int(minutes) * 60) + float(seconds)
+                # hours, minutes, seconds = duration.strip(b'Duration: ').split(b':')
+                # keyword_arguments['video_duration'] = (int(hours) * 60 * 60) + (int(minutes) * 60) + float(seconds)
 
                 # Process video start
-                self.video_start = float(start.split(b':')[1])
+                keyword_arguments['video_start'] = float(start.split(b':')[1])
 
-                self.video_bit_rate = bit_rate.split(b': ')[1].decode('utf8')
+                # Process video bit rate
+                keyword_arguments['video_bit_rate'] = bit_rate.split(b': ')[1].decode('utf8')
             elif (b'Stream #0' in line) and (b'Video:' in line):
                 # Set the video_fps attribute
                 value_end = line.find(b' fps')
                 value_start = line[:value_end].rfind(b', ')
-                self._video['fps'] = float(line[value_start + 2:value_end])
+                keyword_arguments['video_fps'] = float(line[value_start + 2:value_end])
 
                 # Set the video_tbr attribute
                 value_end = line.find(b' tbr,')
                 value_start = line[:value_end].rfind(b', ')
-                self._video['tbr'] = float(line[value_start + 2:value_end])
+                keyword_arguments['video_tbr'] = float(line[value_start + 2:value_end])
             elif (b'Stream #0' in line) and (b'Audio:' in line):
                 pass
 
-        # Set video stream attributes
-        self._video['duration'] = float(self._video['duration'])
-        self._video['height'] = int(self._video['height'])
-        self._video['resolution'] = f"{self._video['width']}x{self._video['height']}"
-        self._video['width'] = int(self._video['width'])
+        return keyword_arguments
 
     ##################
     # Public Methods #
