@@ -298,8 +298,23 @@ PIXEL_FORMATS = {
                  'paletted': False,
                  'hardware_accelerated': False,
                  'nb_components': 3,
-                 'bits_per_pixel': 16}
+                 'bits_per_pixel': 16},
+    'rgb555be': {'bitstream': False,
+                 'input': True,
+                 'output': True,
+                 'paletted': False,
+                 'hardware_accelerated': False,
+                 'nb_components': 3,
+                 'bits_per_pixel': 15},
+    'rgb555le': {'bitstream': False,
+                 'input': True,
+                 'output': True,
+                 'paletted': False,
+                 'hardware_accelerated': False,
+                 'nb_components': 3,
+                 'bits_per_pixel': 15}
 }
+
 
 #TODO - Port and remove entries below
 '''
@@ -311,8 +326,6 @@ I.... = Supported Input  format for conversion
 ....B = Bitstream format
 FLAGS NAME            NB_COMPONENTS BITS_PER_PIXEL
 -----
-IO... rgb555be               3            15
-IO... rgb555le               3            15
 IO... bgr565be               3            16
 IO... bgr565le               3            16
 IO... bgr555be               3            15
@@ -470,6 +483,20 @@ IO... nv42                   3            24
 ..... y210be                 3            20
 I.... y210le                 3            20
 '''
+
+class Sizes(Enum):
+    """
+    Standard video sizes
+    """
+    YOUTUBE_SHORT = (1920, 1080)
+    YOUTUBE_4320P = (7680, 4320)
+    YOUTUBE_2160P = (3840, 2160)
+    YOUTUBE_1440P = (2560, 1440)
+    YOUTUBE_1080P = (1920, 1080)
+    YOUTUBE_720P = (1280, 720)
+    YOUTUBE_480P = (854,480)
+    YOUTUBE_360P = (640,360)
+    YOUTUBE_240P = (426,240)
 
 # Legal values that govern how mask and clip data will be interpreted
 class Behavior(Enum):
