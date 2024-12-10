@@ -32,6 +32,7 @@ Some of the benefits of this package over similiar python packages are
 | Create a linear fade out to a given color on a clip  | Add static image overlays to a video clip             |
 | ClipBase.audio_fade_out()                            | Clip.fade_in()                                        |
 | ClipBase.fade_out()                                  | Adjust the audio volume of a clips and clip sequences |
+| ClipBase.audio_normalize()                           |                                                       |
 
 ### Thinking About For Later
 * Different Storage Engines (datatable?)
