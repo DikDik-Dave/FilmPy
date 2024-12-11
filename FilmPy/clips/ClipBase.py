@@ -86,17 +86,81 @@ class ClipBase:
         Stores all common logic / attributes of a clip.
         It is not meant to be instantiated directly.
 
-        :param clip_width:
-        :param clip_height:
-        :param clip_start_time:
+        :param audio_avg_frame_rate:
+        :param audio_bits_per_sample:
+        :param audio_bit_rate:
+        :param audio_channels:
+        :param audio_channel_layout:
+        :param audio_codec_name:
+        :param audio_codec_long_name:
+        :param audio_codec_tag_string:
+        :param audio_disposition:
+        :param audio_duration:
+        :param audio_duration_ts:
+        :param audio_frames:
+        :param audio_nb_frames:
+        :param audio_r_frame_rate:
+        :param audio_sample_fmt:
+        :param audio_sample_rate:
+        :param audio_start_pts:
+        :param audio_start_time:
+        :param audio_time_base:
+        :param clip_behavior: How should we behave when the end time exceeds the clip frames we have.
         :param clip_end_time:
+        :param clip_fps:
+        :param clip_start_time:
+        :param clip_width:
+        :param file_path:
+        :param clip_frames:
+        :param clip_height:
+        :param clip_include_audio:
+        :param clip_position:
+        :param clip_pixel_format:
+        :param mask_frames:
+        :param mask_behavior:
+        :param video_avg_frame_rate:
+        :param video_bit_rate:
+        :param video_bits_per_raw_sample:
+        :param video_chroma_location:
+        :param video_closed_captions:
+        :param video_codec_long_name:
+        :param video_codec_name:
+        :param video_codec_tag_string:
+        :param video_coded_height:
+        :param video_coded_width:
+        :param video_disposition:
+        :param video_duration:
+        :param video_duration_ts:
+        :param video_has_b_frames:
+        :param video_height:
+        :param video_is_avc:
+        :param video_end_time:
         :param video_fps:
+        :param video_frames:
+        :param video_level:
+        :param video_nal_length_size:
+        :param video_nb_frames:
+        :param video_number_frames:
+        :param video_pix_fmt:
+        :param video_profile:
+        :param video_r_frame_rate:
+        :param video_refs:
+        :param video_start:
+        :param video_start_pts:
+        :param video_start_time:
+        :param video_time_base:
+        :param video_tbr:
+        :param video_width:
+        :param kwargs: Catchall for unexpected keyword arguments
+
+        :raises ValueError: When invalid clip_pixel_format received
         """
         # Get a logger
         logger = getLogger(__name__)
 
-        for kwarg, kwval in kwargs.items():
-            logger.debug(f'Unknown argument: {kwarg} - {kwval}')
+        # Warn the user they sent an argument we are not expecting
+        for kw_arg, kw_value in kwargs.items():
+            logger.warning(f'{type(self).__name__}({kw_arg}={kw_value} ...) is an unknown argument')
 
         # Ensure the clip pixel format is valid
         if clip_pixel_format not in PIXEL_FORMATS.keys():
@@ -114,14 +178,15 @@ class ClipBase:
                         'disposition': audio_disposition,
                         'duration': audio_duration,
                         'duration_ts': audio_duration_ts,
+                        'frames': audio_frames,
                         'number_frames': audio_nb_frames,
                         'r_frame_rate': audio_r_frame_rate,
                         'sample_format': audio_sample_fmt,
                         'sample_rate': audio_sample_rate,
+                        'start_pts': audio_start_pts,
                         'start_time': audio_start_time,
                         'time_base': audio_time_base,
-                        }               # Audio metadata
-        self._audio_frames = audio_frames   # Primary Audio Frame Data
+                        }
 
         # Clip specific attributes
         self._clip_audio = None                                           # The audio data of the clip itself
@@ -189,6 +254,13 @@ class ClipBase:
         if isinstance(self._mask['behavior'], Enum):
             self._mask['behavior'] = self._mask['behavior'].value
 
+        ###########################################
+        # Post array initialization, logic checks #
+        ###########################################
+        if (self.end_time > self.video_end_time) and (self.behavior == Behavior.ENFORCE_LIMIT.value):
+            raise ValueError(f"{type(self).__name__} end time {self.end_time} "
+                             f"exceeds video length of {self.video_end_time}. "
+                             f"Change clip_behavior parameter to allowing for looping or padding of the video")
 
     ############################
     # Property Methods - Audio #
@@ -233,9 +305,15 @@ class ClipBase:
         """
         Set the behavior attribute
         :param value:
-        :return:
         """
         self._clip['behavior'] = int(value)
+
+    @property
+    def end_frame(self) -> int:
+        """
+        Frame index corresponding the end time of the clip
+        """
+        return int(self.end_time * self.fps)
 
     @property
     def end_time(self):
@@ -402,7 +480,15 @@ class ClipBase:
         return self.width, self.height
 
     @property
-    def start_time(self):
+    def start_frame(self) -> int:
+        """
+        Get the frame index for the start of the clip
+        :return:
+        """
+        return int(self.fps * self.start_time)
+
+    @property
+    def start_time(self) -> float:
         """
         Retrieves the start time of the clip
 
@@ -611,7 +697,7 @@ class ClipBase:
         """
         Write audio for this clip to file
 
-        :param file_name:
+        :param file_path: Path to the filename to write the audio
         :param fps:
         :param number_channels:
         :return:
@@ -842,12 +928,10 @@ class ClipBase:
         # Update the frames
         altered_frames = []
         new_frame = None
-        last_frame = None
         for frame in self.get_frames():
-            last_frame = frame
-            new_frame = np.concatenate((top_row, frame, bottom_row), axis=0) # Concatenate Rows
-            new_frame = np.concatenate((left_column, new_frame, right_column), axis=1)
-            altered_frames.append(new_frame.astype('uint8')) # Concatenate Columns
+            new_frame = np.concatenate((top_row, frame, bottom_row), axis=0)           # Concatenate Rows
+            new_frame = np.concatenate((left_column, new_frame, right_column), axis=1) # Concatenate Columns
+            altered_frames.append(new_frame.astype('uint8')) # Add to our list of altered frames
 
         # Set the new frame shape
         self.height = new_frame.shape[0]
@@ -1023,6 +1107,7 @@ class ClipBase:
         # Enable method chaining
         return self
 
+    # noinspection PyArgumentList
     def get_audio_frames(self,
                          file_name,
                          fps=44100,
@@ -1037,8 +1122,8 @@ class ClipBase:
         :param number_channels:
         :return:
         """
-        if self._audio_frames is not None:
-            return self._audio_frames
+        if self._audio['frames'] is not None:
+            return self._audio['frames']
 
         ffmpeg_command = [FFMPEG_BINARY,
                           '-i', file_name, '-vn',
@@ -1054,8 +1139,8 @@ class ClipBase:
 
         # return completed_process.stdout
         dt = {1: 'int8', 2: 'int16', 4: 'int32'}[number_bytes]
-        self._audio_frames = np.fromstring(completed_process.stdout, dtype=dt).reshape(-1, number_channels)
-        return self._audio_frames
+        self._audio['frames'] = np.fromstring(completed_process.stdout, dtype=dt).reshape(-1, number_channels)
+        return self._audio['frames']
 
     def get_mask_frames(self, pixel_format=None):
         """
@@ -1072,11 +1157,13 @@ class ClipBase:
             pixel_format = self.pixel_format
 
         # Generate mask cell
-        number_components = PIXEL_FORMATS[pixel_format]['nb_components']
-        mask_cell = np.tile(True, number_components)
+
         # No mask exists, so we need to create one
         if not self._mask['frames']:
-            self._mask['frames'] = [np.tile(mask_cell, self.width * self.height).reshape(self.height, self.width, number_components)]
+            number_components = PIXEL_FORMATS[pixel_format]['nb_components']
+            mask_cell = np.tile(True, number_components)
+            self._mask['frames'] = [np.tile(mask_cell, self.width * self.height)
+                                    .reshape(self.height, self.width, number_components)]
 
         # If mask behavior is to loop, then create all the mask frames we need, and replace the mask frames we had
         if self._mask['behavior'] == Behavior.LOOP_FRAMES.value:
@@ -1102,10 +1189,31 @@ class ClipBase:
         if self._clip['frames']:
             return self._clip['frames']
 
-        # No frames yet exist, copy the video data
-        # TODO: respect clip start, end, etc
-        self._clip['frames'] = self.get_video_frames()
+        # No frames yet exist, default to using the video frames we have
+        video_frames = self.get_video_frames()
 
+        # Determine how many frames we need
+        frames_needed = self.end_frame - self.start_frame
+
+        # We need fewer frames than we have
+        if frames_needed <= self.video_number_frames:
+            self.set_frames(video_frames[self.start_frame:self.end_frame])
+        # We need to loop over the footage till we have the amount of frames we need
+        elif self.behavior == Behavior.LOOP_FRAMES.value:
+            looped_frames = []
+
+            while frames_needed > 0:
+                if frames_needed > self.video_number_frames:
+                    looped_frames.extend(video_frames)
+                    frames_needed -= self.video_number_frames
+                else:
+                    looped_frames.extend(video_frames[0:frames_needed])
+                    frames_needed -= frames_needed
+
+            self.set_frames(looped_frames)
+
+
+        # Return the frames
         return self._clip['frames']
 
     def get_video_frame(self,
@@ -1331,7 +1439,7 @@ class ClipBase:
         if not isinstance(value, np.ndarray):
             raise ValueError(f"{type(self).__name__}.audio_data must be an numpy array")
 
-        self._audio_frames = value.astype(np.int16)
+        self._audio['frames'] = value.astype(np.int16)
 
     def set_frames(self, value):
         """
