@@ -298,7 +298,10 @@ class ClipBase:
         """
         Governs how the clip should behave when given an end time that is out of bounds
         """
-        return self._clip['behavior']
+        if isinstance(self._clip['behavior'], Behavior):
+            self.behavior = self._clip['behavior'].value
+
+        return int(self._clip['behavior'])
 
     @behavior.setter
     def behavior(self, value):
@@ -1211,7 +1214,16 @@ class ClipBase:
                     frames_needed -= frames_needed
 
             self.set_frames(looped_frames)
+        # Need to pad the footage
+        elif self.behavior == Behavior.PAD.value:
+            color = (77, 128, 90)
+            number_pad_frames = frames_needed - self.video_number_frames
+            pad_frame = (np.tile(color, self.width * self.height)
+                          .reshape(self.height, self.width, 3)
+                          .astype('uint8'))
 
+            video_frames.extend([pad_frame] * number_pad_frames)
+            self.set_frames(video_frames)
 
         # Return the frames
         return self._clip['frames']
