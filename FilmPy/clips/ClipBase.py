@@ -35,7 +35,7 @@ class ClipBase:
                  audio_time_base=None,
                  clip_behavior=Behavior.ENFORCE_LIMIT.value,
                  clip_end_time=None,
-                 clip_fps=30,
+                 clip_fps=None,
                  clip_start_time=0,
                  clip_width=None,
                  file_path=None,
@@ -68,7 +68,6 @@ class ClipBase:
                  video_level=None,
                  video_nal_length_size=None,
                  video_nb_frames=None,
-                 video_number_frames=None,
                  video_pix_fmt=None,
                  video_profile=None,
                  video_r_frame_rate=None,
@@ -230,8 +229,6 @@ class ClipBase:
                             'height': video_height,
                             'level': video_level,
                             'nal_length_size': video_nal_length_size,
-                            'number_frames': video_number_frames,
-                            'nb_frames': video_nb_frames,
                             'pixel_format': video_pix_fmt,
                             'profile': video_profile,
                             'refs': video_refs,
@@ -243,7 +240,7 @@ class ClipBase:
                             'time_base': video_time_base,
                             'tbr': video_tbr,
                             'width': video_width}
-
+        self.video_number_frames = video_nb_frames
         # File specific attributes
         self._file_path = file_path  # Path to whatever file is associated to this clip
 
@@ -312,6 +309,13 @@ class ClipBase:
         self._clip['behavior'] = int(value)
 
     @property
+    def duration(self) -> int:
+        """
+        Duration of the clip
+        """
+        return self.end_time - self.start_time
+
+    @property
     def end_frame(self) -> int:
         """
         Frame index corresponding the end time of the clip
@@ -369,11 +373,18 @@ class ClipBase:
     @property
     def has_audio(self):
         """
-        Checks if the clip in question has audio data
+        Does the clip have audio
 
         :return: True if the clip has audio data, False otherwise
         """
         return bool(self._audio)
+
+    @property
+    def has_video(self):
+        """
+        Does the clip have video frames
+        """
+        return bool(self.video_number_frames and (self.video_number_frames > 0))
 
     @property
     def height(self) -> int:
@@ -587,11 +598,12 @@ class ClipBase:
 
         :raises ValueError:  Number of video frames is None (which should never be true)
         """
-        # Ensure we have a valid value
-        if ('number_frames' not in self._video) or (self._video['number_frames'] is None):
-            raise ValueError(f'{type(self).__name__}.video_number_frames has not been set.')
-
         return self._video['number_frames']
+
+    @video_number_frames.setter
+    def video_number_frames(self, value):
+        value = 0 if value is None else value
+        self._video['number_frames'] = int(value)
 
     @property
     def video_pixel_format(self) -> str:
@@ -769,11 +781,11 @@ class ClipBase:
         # Return this object to enable method chaining
         return self
 
-    def audio_fade_in(self, duration, algorithm=Fade.LINEAR):
+    # TODO: add audio_fade_in(,algorithm=Fade.LINEAR) parameter
+    def audio_fade_in(self, duration):
         """
         Apply a fade in to the audio track
 
-        :param algorithm: Type of audio fade in to implement,
         :param duration: Duration, in seconds, that the fade in will last for
         :return self: This object, to allow for method chaining
         """
@@ -1188,6 +1200,8 @@ class ClipBase:
         Get the video frames list for this clip
         :return:
         """
+        # logger = getLogger(__name__)
+        # logger.debug("Getting frames")
         # Return the already created frames
         if self._clip['frames']:
             return self._clip['frames']
@@ -1197,6 +1211,11 @@ class ClipBase:
 
         # Determine how many frames we need
         frames_needed = self.end_frame - self.start_frame
+
+        # We need more frames than we have, and we are to enforce the limit
+        if (frames_needed > self.video_number_frames) and self.behavior == Behavior.ENFORCE_LIMIT.value:
+            raise ValueError(f"Frames needed ({frames_needed}) exceeds the available "
+                             f"number of video frames ({self.video_number_frames})")
 
         # We need fewer frames than we have
         if frames_needed <= self.video_number_frames:
@@ -1461,6 +1480,33 @@ class ClipBase:
             raise ValueError(f"{type(self).__name__}.clip_frames must be a list of numpy.array objects")
 
         self._clip['frames'] = value
+
+    def trim(self, exclude_before=None, exclude_after=None):
+        """
+        Trim the audio/video to exclude the requested frames
+
+        :param exclude_before: frames earlier than this time will be excluded from the clip
+        :param exclude_after: frames later than this time will be excluded from the clip
+        :return self: Enables method chaining
+        """
+        logger = getLogger(__name__)
+        if not exclude_before and not exclude_after:
+            logger.warning(f"No trimming requested")
+
+        # We need to trim material at the beginning of the clip
+        if exclude_before:
+            self.start_time = exclude_before
+
+        # We need to trim material at the end of the clip
+        if exclude_after:
+            self.end_time = exclude_after
+
+        # Alter the video frames accordingly
+        if self.has_video:
+            self.set_frames(self.get_frames())
+
+        # Enable method chaining
+        return self
 
     def write_audio(self, file_path:str,
                     ffmpeg_log_level='error'):
