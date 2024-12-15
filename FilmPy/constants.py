@@ -312,11 +312,39 @@ PIXEL_FORMATS = {
                  'paletted': False,
                  'hardware_accelerated': False,
                  'nb_components': 3,
+                 'bits_per_pixel': 15},
+    'bgr565be': {'bitstream': False,
+                 'input': True,
+                 'output': True,
+                 'paletted': False,
+                 'hardware_accelerated': False,
+                 'nb_components': 3,
+                 'bits_per_pixel': 16},
+    'bgr565le': {'bitstream': False,
+                 'input': True,
+                 'output': True,
+                 'paletted': False,
+                 'hardware_accelerated': False,
+                 'nb_components': 3,
+                 'bits_per_pixel': 16},
+    'bgr555be': {'bitstream': False,
+                 'input': True,
+                 'output': True,
+                 'paletted': False,
+                 'hardware_accelerated': False,
+                 'nb_components': 3,
+                 'bits_per_pixel': 15},
+    'bgr555le': {'bitstream': False,
+                 'input': True,
+                 'output': True,
+                 'paletted': False,
+                 'hardware_accelerated': False,
+                 'nb_components': 3,
                  'bits_per_pixel': 15}
 }
 
 
-#TODO - Port and remove entries below
+# TODO - Port and remove entries below
 '''
 Pixel formats:
 I.... = Supported Input  format for conversion
@@ -326,10 +354,6 @@ I.... = Supported Input  format for conversion
 ....B = Bitstream format
 FLAGS NAME            NB_COMPONENTS BITS_PER_PIXEL
 -----
-IO... bgr565be               3            16
-IO... bgr565le               3            16
-IO... bgr555be               3            15
-IO... bgr555le               3            15
 ..H.. vaapi_moco             0             0
 ..H.. vaapi_idct             0             0
 ..H.. vaapi_vld              0             0
@@ -488,6 +512,7 @@ class Sizes(Enum):
     """
     Standard video sizes
     """
+    CONSOLE_NES = (256, 224)
     YOUTUBE_SHORT = (1920, 1080)
     YOUTUBE_4320P = (7680, 4320)
     YOUTUBE_2160P = (3840, 2160)
