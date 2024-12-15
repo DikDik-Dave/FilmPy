@@ -515,6 +515,11 @@ class ClipBase:
         """
         return self.width, self.height
 
+    @size.setter
+    def size(self, value):
+        self.width = value[0]
+        self.height = value[1]
+
     @property
     def start_frame(self) -> int:
         """
@@ -807,7 +812,7 @@ class ClipBase:
         :return self: This object, to allow for method chaining
         """
         # Get the audio frames
-        audio_frames = self.get_audio_frames(self.file_path)
+        audio_frames = self.get_audio_frames()
 
         # Get the end frame for the audio fade in
         end_frame = int(self.audio_sample_rate * duration)
@@ -837,7 +842,7 @@ class ClipBase:
         """
 
         # Get the audio frames
-        audio_frames = self.get_audio_frames(self.file_path)
+        audio_frames = self.get_audio_frames()
 
         # Get the starting frame for the audio fade out
         start_frame = int(self.audio_sample_rate * duration)
@@ -879,7 +884,7 @@ class ClipBase:
 
 
         # Ensure we have stereo data
-        audio_frames = self.get_audio_frames(self.file_path, number_channels=self.audio_channels)
+        audio_frames = self.get_audio_frames()
         if audio_frames.shape[1] != 2:
             raise ValueError(f"Audio frames are not stereo")
 
@@ -974,40 +979,32 @@ class ClipBase:
         # Enable method chaining
         return self
 
-    def trim(self, exclude_before=None, exclude_after=None):
+    def pixelate(self, pixel_size=32):
         """
-        Trim the audio/video to exclude the requested frames
+        Convert the footage to game console footage
 
-        :param exclude_before: frames earlier than this time will be excluded from the clip
-        :param exclude_after: frames later than this time will be excluded from the clip
+        :param pixel_size: What video game console should the footage resemble
         :return self: Enables method chaining
         """
-        logger = getLogger(__name__)
+        logger = getLogger()
+        logger.debug(f"{type(self).__name__}.consolize(pixel_size={pixel_size})")
 
-        # Let the user no that they called trim without purpose
-        logger.debug(f"{type(self).__name__}.trim(exclude_before={exclude_before}, exclude_after={exclude_after})")
-        if not exclude_before and not exclude_after:
-            logger.warning(f"No trimming requested")
+        altered_frames = []
+        for frame in self.get_frames():
+            image = Image.fromarray(frame)
 
-        # We need to trim material at the beginning of the clip
-        if exclude_before:
-            self.start_time = exclude_before
+            # Resize smoothly down
+            image_small = image.resize((pixel_size, pixel_size), resample=Image.Resampling.BILINEAR)
 
-        # We need to trim material at the end of the clip
-        if exclude_after:
-            self.end_time = exclude_after
+            # Scale back up using NEAREST to original size, and add it to the altered frames
+            altered_frames.append(np.array(image_small.resize(self.size, Image.Resampling.NEAREST)))
 
-        # Alter the video frames accordingly
-        if self.has_video:
-            self.set_frames(self.get_frames())
-
-        # Alter the audio data accordingly
-        if self.has_audio:
-            audio_frames = self.get_audio_frames()
-            self.set_audio_frames(audio_frames[self.audio_start_index:self.audio_end_index])
+        # Update clip frames
+        self.set_frames(altered_frames)
 
         # Enable method chaining
         return self
+
 
     def crop(self,
              top_left_x:int=0,
@@ -1229,8 +1226,6 @@ class ClipBase:
         """
         Get audio data from an audio or video file
 
-        :param number_bytes:
-        :param number_channels:
         :return:
         """
         logger = getLogger(__name__)
@@ -1240,7 +1235,7 @@ class ClipBase:
             return self._audio['frames']
 
         ffmpeg_command = [FFMPEG_BINARY,
-                          '-i', self._file_path, '-vn',
+                          '-i', self.file_path, '-vn',
                           '-loglevel', 'error',
                           '-f', 's%dle' % (8 * self.audio_channels),
                           '-acodec', 'pcm_s%dle' % (8 * self.audio_channels),
