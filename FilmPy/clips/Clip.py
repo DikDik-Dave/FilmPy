@@ -91,22 +91,6 @@ class Clip(ClipBase):
                     new_key = f"{stream['codec_type']}_{key}"
                     keyword_arguments[new_key] = value
 
-        # keyword_arguments['resolution'] = f"{keyword_arguments['width']}x{keyword_arguments['height']}"
-
-        # Get the number of frames for the video
-        logger.debug(f"Retrieving number_frames from ffprobe")
-        ffprobe_command = [FFPROBE_BINARY,
-                           '-v', 'error',
-                           '-select_streams', 'v:0',
-                           '-count_frames',
-                           '-show_entries',
-                           'stream=nb_read_frames',
-                           '-of', 'csv=p=0',
-                           video_path]
-
-        completed_process = subprocess.run(ffprobe_command, capture_output=True)
-        keyword_arguments['video_number_frames'] = int(completed_process.stdout)
-
         # Call ffmpeg to get additional information about the file
         ffmpeg_info_command = [FFMPEG_BINARY, "-hide_banner", "-i", video_path]
         logger.debug(f'Calling ffmpeg "{' '.join(ffmpeg_info_command)}"')
@@ -115,16 +99,12 @@ class Clip(ClipBase):
             if b'Duration: ' in line:
                 duration, start, bit_rate = line.split(b',')
 
-                # Process the duration
-                # hours, minutes, seconds = duration.strip(b'Duration: ').split(b':')
-                # keyword_arguments['video_duration'] = (int(hours) * 60 * 60) + (int(minutes) * 60) + float(seconds)
-
                 # Process video start
                 keyword_arguments['video_start'] = float(start.split(b':')[1])
 
                 # Process video bit rate
                 keyword_arguments['video_bit_rate'] = bit_rate.split(b': ')[1].decode('utf8')
-            elif (b'Stream #0' in line) and (b'Video:' in line):
+            elif b'Stream #0:0(und): Video' in line:
                 # Set the video_fps attribute
                 value_end = line.find(b' fps')
                 value_start = line[:value_end].rfind(b', ')
