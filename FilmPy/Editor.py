@@ -158,20 +158,29 @@ class Editor:
 
     @classmethod
     def configure_logging(cls,
+                          *args,
+                          date_format='%Y-%m-%d %H:%M:%S',
+                          file_path: str = None,
                           log_level:int=INFO,
-                          stream_format:str='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                          file_format:str=None,
-                          file_path:str=None):
+                          stream_format:str='%(asctime)s - %(name)-25s - %(levelname)s - %(message)s',
+                          file_format:str=None):
         """
-        Configure the logging for the FilmPy package itself.
-        Default behavior is to stream info level and above logs but not write them to disk
+        Configure the logging for the FilmPy library
+        Default behavior is to stream info level and above logs but not write them to disk.
+        If not called, only warning or above gets displayed to the console
 
-        :param file_path:
-        :param file_format: Format for the file handler, if set to None, no file handler will be added
-        :param log_level: Python logging level
-        :param stream_format: Format for the stream handler, if set to None, no stream handler will be added
-        :return:
+        :param date_format   : How should dates be displayed
+        :param file_path     : Where should the log file be written to, default is FilmPy.log in current directory
+        :param file_format   : Format for the file handler, if set to None, no file handler will be added
+        :param log_level     : Python logging level
+        :param stream_format : Format for the stream handler, if set to None, no stream handler will be added
         """
+
+        # We received a single integer argument, treat it as the log_level
+        if (len(args) == 1) and isinstance(args[0], int):
+            log_level = args[0]
+
+        # Get the root level logger for FilmPy
         logger = getLogger(__name__.split('.')[0])
 
         # Set the log level to the requested level
@@ -180,7 +189,7 @@ class Editor:
         # Attach the stream handler as needed
         if stream_format:
             stream_handler = StreamHandler()
-            handler_formatter = Formatter(stream_format)
+            handler_formatter = Formatter(stream_format, datefmt=date_format)
             stream_handler.setFormatter(handler_formatter)
             logger.addHandler(stream_handler)
 
