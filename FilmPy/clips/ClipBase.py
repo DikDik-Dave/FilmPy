@@ -181,11 +181,11 @@ class ClipBase:
                         'number_frames': audio_nb_frames,
                         'r_frame_rate': audio_r_frame_rate,
                         'sample_format': audio_sample_fmt,
-                        'sample_rate': audio_sample_rate,
                         'start_pts': audio_start_pts,
                         'start_time': audio_start_time,
                         'time_base': audio_time_base,
                         }
+        self.audio_sample_rate = audio_sample_rate
 
         # Clip specific attributes
         self._clip_audio = None                                           # The audio data of the clip itself
@@ -280,16 +280,38 @@ class ClipBase:
         self._audio['channels'] = int(value)
 
     @property
-    def audio_sample_rate(self):
+    def audio_sample_rate(self) -> int:
         """
         Audio Sample Rate for the audio
         :return:
         """
         return self._audio['sample_rate']
 
+    @audio_sample_rate.setter
+    def audio_sample_rate(self, value):
+        """
+        Set the audio sample rate
+        :param value: audio sample rate value
+        """
+        self._audio['sample_rate'] = int(value)
+
     ######################################
     # Property Methods - Clip Attributes #
     ######################################
+    @property
+    def audio_end_index(self) -> int:
+        """
+        Audio data index corresponding to the start_time of the clip
+        """
+        return int(self.audio_sample_rate * self.end_time)
+
+    @property
+    def audio_start_index(self) -> int:
+        """
+        Audio data index corresponding to the end_time of the clip
+        """
+        return int(self.audio_sample_rate * self.start_time)
+
     @property
     def behavior(self) -> int:
         """
@@ -704,36 +726,31 @@ class ClipBase:
     ###################
     def _write_audio(self,
                      file_path=None,
-                     fps=44100,
-                     number_bytes=None,
-                     number_channels=None,
                      ffmpeg_log_level='error'
                      ):
         """
         Write audio for this clip to file
 
-        :param file_path: Path to the filename to write the audio
-        :param fps:
-        :param number_channels:
-        :return:
+        :param file_path        : Path to the filename to write the audio
+        :param ffmpeg_log_level : sets the log level to be sent to ffmpeg
         """
         logger = getLogger(__name__)
 
-        audio_data = self.get_audio_frames(self._file_path, fps, number_bytes, number_channels)
+        audio_data = self.get_audio_frames()
 
         # FFMPEG Command to write audio to a file
         ffmpeg_command = [
             FFMPEG_BINARY, '-y',
             '-loglevel', ffmpeg_log_level,                          # Set ffmpeg's log level accordingly
-            "-f", 's%dle' % (8 * number_bytes),
-            "-acodec", 'pcm_s%dle' % (8 * number_bytes),
-            '-ar', "%d" % fps,
-            '-ac', "%d" % number_channels,
+            "-f", 's%dle' % (8 * self.audio_channels),
+            "-acodec", 'pcm_s%dle' % (8 * self.audio_channels),
+            '-ar', "%d" % self.audio_sample_rate,
+            '-ac', "%d" % self.audio_channels,
             '-i', '-',
             file_path]
 
         # Log the ffmpeg call we will make
-        logger.debug(f"ffmpeg command \"{' '.join(ffmpeg_command)}\"")
+        logger.debug(f"Calling ffmpeg to write audio \"{' '.join(ffmpeg_command)}\"")
 
         # Write all the data (via ffmpeg) to the temp file
         process = subprocess.Popen(ffmpeg_command, stdin=subprocess.PIPE, bufsize=10 ** 8)
@@ -883,9 +900,8 @@ class ClipBase:
         if not self.has_audio:
             raise AttributeError(f"{type(self).__name__} does not have associated audio.")
 
-
         # Set the new audio data
-        audio_frames = self.get_audio_frames(self.file_path, number_channels=self.audio_channels) * multiplier
+        audio_frames = self.get_audio_frames() * multiplier
         self.set_audio_frames(audio_frames)
 
         # Return this object to enable method chaining
@@ -958,6 +974,41 @@ class ClipBase:
         # Enable method chaining
         return self
 
+    def trim(self, exclude_before=None, exclude_after=None):
+        """
+        Trim the audio/video to exclude the requested frames
+
+        :param exclude_before: frames earlier than this time will be excluded from the clip
+        :param exclude_after: frames later than this time will be excluded from the clip
+        :return self: Enables method chaining
+        """
+        logger = getLogger(__name__)
+
+        # Let the user no that they called trim without purpose
+        logger.debug(f"{type(self).__name__}.trim(exclude_before={exclude_before}, exclude_after={exclude_after})")
+        if not exclude_before and not exclude_after:
+            logger.warning(f"No trimming requested")
+
+        # We need to trim material at the beginning of the clip
+        if exclude_before:
+            self.start_time = exclude_before
+
+        # We need to trim material at the end of the clip
+        if exclude_after:
+            self.end_time = exclude_after
+
+        # Alter the video frames accordingly
+        if self.has_video:
+            self.set_frames(self.get_frames())
+
+        # Alter the audio data accordingly
+        if self.has_audio:
+            audio_frames = self.get_audio_frames()
+            self.set_audio_frames(audio_frames[self.audio_start_index:self.audio_end_index])
+
+        # Enable method chaining
+        return self
+
     def crop(self,
              top_left_x:int=0,
              top_left_y:int=0,
@@ -1011,6 +1062,58 @@ class ClipBase:
 
         # Replace the frames with the new frames
         self.set_frames(cropped_frames)
+
+        # Enable method chaining
+        return self
+
+    def cut(self, start_time=None, end_time=None):
+        """
+        Cuts the requested time out of the clip.
+        Will reset
+
+        :param start_time: frames earlier than this time will be excluded from the clip
+        :param end_time: frames later than this time will be excluded from the clip
+        :return self: Enables method chaining
+        """
+        logger = getLogger(__name__)
+
+        # Let the user no that they called trim without purpose
+        logger.debug(f"{type(self).__name__}.trim(start_time={start_time}, end_time={end_time})")
+        if not start_time and not end_time:
+            logger.warning(f"Nothing to cut")
+
+
+        # Alter the video frames accordingly
+        if self.has_video:
+            # Get the frames
+            frames = self.get_frames()
+
+            # Determine the cut frame indices
+            start_index = int(self.fps * start_time)
+            end_index = int(self.fps * end_time)
+
+            # Cut out the frames of the clip we don't want
+            frames = frames[0:start_index] + frames[end_index:]
+
+            # Update the clip attributes
+            self.set_frames(frames)
+            self.number_frames = len(frames)
+
+            # Should this line, be outside the if block??
+            self.end_time = len(frames) / self.fps
+
+        # Alter the audio data accordingly
+        if self.has_audio:
+            # Get the audio frames
+            audio_frames = self.get_audio_frames()
+
+            # Determine the cut frame indices
+            start_index = int(self.audio_sample_rate * start_time)
+            end_index = int(self.audio_sample_rate * end_time)
+
+            # Cut out the frames of the clip we don't want
+            audio_frames = np.concatenate([audio_frames[0:start_index],audio_frames[end_index:]], axis=0)
+            self.set_audio_frames(audio_frames)
 
         # Enable method chaining
         return self
@@ -1122,39 +1225,36 @@ class ClipBase:
         # Enable method chaining
         return self
 
-    # noinspection PyArgumentList
-    def get_audio_frames(self,
-                         file_name,
-                         fps=44100,
-                         number_bytes=2,
-                         number_channels=2):
+    def get_audio_frames(self):
         """
         Get audio data from an audio or video file
-        :param file_name: File containing audio to retrieve
 
-        :param fps:
         :param number_bytes:
         :param number_channels:
         :return:
         """
+        logger = getLogger(__name__)
+
+        # self._file_path, fps, number_bytes, number_channels
         if self._audio['frames'] is not None:
             return self._audio['frames']
 
         ffmpeg_command = [FFMPEG_BINARY,
-                          '-i', file_name, '-vn',
+                          '-i', self._file_path, '-vn',
                           '-loglevel', 'error',
-                          '-f', 's%dle' % (8 * number_bytes),
-                          '-acodec', 'pcm_s%dle' % (8 * number_bytes),
-                          '-ar', '%d' % fps,
-                          '-ac', '%d' % number_channels,
+                          '-f', 's%dle' % (8 * self.audio_channels),
+                          '-acodec', 'pcm_s%dle' % (8 * self.audio_channels),
+                          '-ar', '%d' % self.audio_sample_rate,
+                          '-ac', '%d' % self.audio_channels,
                           '-'
                           ]
 
+        logger.debug(f"Calling ffmpeg to get audio \"{' '.join(ffmpeg_command)}\"")
         completed_process = subprocess.run(ffmpeg_command, capture_output=True)
 
         # return completed_process.stdout
-        dt = {1: 'int8', 2: 'int16', 4: 'int32'}[number_bytes]
-        self._audio['frames'] = np.fromstring(completed_process.stdout, dtype=dt).reshape(-1, number_channels)
+        dt = {1: 'int8', 2: 'int16', 4: 'int32'}[self.audio_channels]
+        self._audio['frames'] = np.fromstring(completed_process.stdout, dtype=dt).reshape(-1, self.audio_channels)
         return self._audio['frames']
 
     def get_mask_frames(self, pixel_format=None):
@@ -1490,6 +1590,9 @@ class ClipBase:
         :return self: Enables method chaining
         """
         logger = getLogger(__name__)
+
+        # Let the user no that they called trim without purpose
+        logger.debug(f"{type(self).__name__}.trim(exclude_before={exclude_before}, exclude_after={exclude_after})")
         if not exclude_before and not exclude_after:
             logger.warning(f"No trimming requested")
 
@@ -1504,6 +1607,11 @@ class ClipBase:
         # Alter the video frames accordingly
         if self.has_video:
             self.set_frames(self.get_frames())
+
+        # Alter the audio data accordingly
+        if self.has_audio:
+            audio_frames = self.get_audio_frames()
+            self.set_audio_frames(audio_frames[self.audio_start_index:self.audio_end_index])
 
         # Enable method chaining
         return self
@@ -1521,9 +1629,6 @@ class ClipBase:
         logger = getLogger(__name__)
 
         self._write_audio(file_path=file_path,
-                          fps=44100,
-                          number_channels=self.audio_channels,
-                          number_bytes=2,
                           ffmpeg_log_level=ffmpeg_log_level)
 
         logger.info(f"Audio file created '{file_path}'")
@@ -1591,6 +1696,9 @@ class ClipBase:
         """
         # Get a logger
         logger = getLogger(__name__)
+        logger.debug(f"{type(self).__name__}.write_video(file_path={file_path}, write_audio={write_audio}, "
+                     f"audio_codec={audio_codec}, file_video_codec={file_video_codec}, "
+                     f"file_pixel_format={file_pixel_format}, ffmpeg_log_level={ffmpeg_log_level})")
 
         # Get filename and extension from the file path
         file_name, ext = os.path.splitext(os.path.basename(file_path))
@@ -1628,13 +1736,11 @@ class ClipBase:
                    ]
 
         # If we have an audio stream and we are to write audio
+        audio_file_name = None
         if self._audio and write_audio:
             # Write the audio to disk
             audio_file_name = f"{file_name}_wvf_snd.tmp.{audio_extension}"
             self._write_audio(file_path=audio_file_name,
-                              fps=44100,
-                              number_channels=self.audio_channels,
-                              number_bytes=2,
                               ffmpeg_log_level=ffmpeg_log_level)
 
             # Extend the command to pass in the audio we just recorded
@@ -1643,7 +1749,6 @@ class ClipBase:
                 '-acodec', 'copy'
             ])
 
-            # TODO: Delete the temp file
         else:
             command.extend(['-an']) # tells FFMPEG not to expect any audio
 
@@ -1663,5 +1768,9 @@ class ClipBase:
             process.stdin.write(frame.tobytes())
         process.stdin.close()
         process.wait()
+
+        # Delete the audio temp  file we created as needed
+        if audio_file_name:
+            os.remove(audio_file_name)
 
         logger.info(f"Video written to '{file_path}'")
