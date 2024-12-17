@@ -6,6 +6,7 @@ AUDIO_CODECS = {
     'mp3': ["libmp3lame"],
     'wav': ["pcm_s16le", "pcm_s24le", "pcm_s32le"],
     'm4a': ["libfdk_aac"]}
+ENVIRONMENT_FILE = ".filmpy.env"
 FONT_EXTENSIONS = ['fon','ttf']                             # Standard extensions for a font file
 FFMPEG_BINARY = "ffmpeg.exe"
 FFPROBE_BINARY = 'ffprobe.exe'
@@ -340,7 +341,28 @@ PIXEL_FORMATS = {
                  'paletted': False,
                  'hardware_accelerated': False,
                  'nb_components': 3,
-                 'bits_per_pixel': 15}
+                 'bits_per_pixel': 15},
+    'vaapi_moco': {'bitstream': False,
+                 'input': False,
+                 'output': False,
+                 'paletted': False,
+                 'hardware_accelerated': True,
+                 'nb_components': 0,
+                 'bits_per_pixel': 0},
+    'vaapi_idct': {'bitstream': False,
+                   'input': False,
+                   'output': False,
+                   'paletted': False,
+                   'hardware_accelerated': True,
+                   'nb_components': 0,
+                   'bits_per_pixel': 0},
+    'vaapi_vld': {'bitstream': False,
+                   'input': False,
+                   'output': False,
+                   'paletted': False,
+                   'hardware_accelerated': True,
+                   'nb_components': 0,
+                   'bits_per_pixel': 0}
 }
 
 
@@ -354,9 +376,6 @@ I.... = Supported Input  format for conversion
 ....B = Bitstream format
 FLAGS NAME            NB_COMPONENTS BITS_PER_PIXEL
 -----
-..H.. vaapi_moco             0             0
-..H.. vaapi_idct             0             0
-..H.. vaapi_vld              0             0
 IO... yuv420p16le            3            24
 IO... yuv420p16be            3            24
 IO... yuv422p16le            3            32
@@ -564,3 +583,11 @@ class ImageModes(Enum):
     HSV             = 'HSV'   # 3x8-bit pixels, Hue, Saturation, Value color space. Hue’s range of 0-255 is a scaled version of 0 degrees <= Hue < 360 degrees
     I               = 'I'     # 32-bit signed integer pixels
     F               = 'F'     # 32-bit floating point pixels
+
+class Mask(Enum):
+    BOTTOM_HALF = 'bottom_half'
+    TOP_HALF = 'top_half'
+    LEFT_HALF = 'left_half'
+    RIGHT_HALF = 'right_half'
+    LEFT_TRIANGLE = 'left_triangle'
+    RIGHT_TRIANGLE = 'right_triangle'
