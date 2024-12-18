@@ -362,7 +362,35 @@ PIXEL_FORMATS = {
                    'paletted': False,
                    'hardware_accelerated': True,
                    'nb_components': 0,
-                   'bits_per_pixel': 0}
+                   'bits_per_pixel': 0},
+    'yuv420p16le': {'bitstream': False,
+                 'input': True,
+                 'output': True,
+                 'paletted': False,
+                 'hardware_accelerated': False,
+                 'nb_components': 3,
+                 'bits_per_pixel': 24},
+    'yuv420p16be': {'bitstream': False,
+                 'input': True,
+                 'output': True,
+                 'paletted': False,
+                 'hardware_accelerated': False,
+                 'nb_components': 3,
+                 'bits_per_pixel': 24},
+    'yuv422p16le': {'bitstream': False,
+                    'input': True,
+                    'output': True,
+                    'paletted': False,
+                    'hardware_accelerated': False,
+                    'nb_components': 3,
+                    'bits_per_pixel': 32},
+    'yuv422p16be': {'bitstream': False,
+                    'input': True,
+                    'output': True,
+                    'paletted': False,
+                    'hardware_accelerated': False,
+                    'nb_components': 3,
+                    'bits_per_pixel': 32}
 }
 
 
@@ -376,10 +404,6 @@ I.... = Supported Input  format for conversion
 ....B = Bitstream format
 FLAGS NAME            NB_COMPONENTS BITS_PER_PIXEL
 -----
-IO... yuv420p16le            3            24
-IO... yuv420p16be            3            24
-IO... yuv422p16le            3            32
-IO... yuv422p16be            3            32
 IO... yuv444p16le            3            48
 IO... yuv444p16be            3            48
 ..H.. dxva2_vld              0             0
@@ -585,6 +609,7 @@ class ImageModes(Enum):
     F               = 'F'     # 32-bit floating point pixels
 
 class Mask(Enum):
+    BLINK = 'blink'
     BOTTOM_HALF = 'bottom_half'
     TOP_HALF = 'top_half'
     LEFT_HALF = 'left_half'
