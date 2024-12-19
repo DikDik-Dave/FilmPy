@@ -556,7 +556,7 @@ class Sizes(Enum):
     Standard video sizes
     """
     CONSOLE_NES = (256, 224)
-    YOUTUBE_SHORT = (1920, 1080)
+    YOUTUBE_SHORT = (1080, 1920)
     YOUTUBE_4320P = (7680, 4320)
     YOUTUBE_2160P = (3840, 2160)
     YOUTUBE_1440P = (2560, 1440)
