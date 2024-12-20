@@ -156,6 +156,19 @@ class ClipBase:
         """
         # Get a logger
         logger = getLogger(__name__)
+        self._all_attributes = ('_audio','_clip','_environment','_mask','_file')
+
+        # Environment Attributes / Check for .filmpy.env :
+        # TODO: check for FILMPY_* environment variables
+        self._environment = {}
+        if os.path.exists(ENVIRONMENT_FILE):
+            with open(ENVIRONMENT_FILE) as f:
+                for line in f.readlines():
+                    key, val = line.split('=')
+                    self._environment[key] = val
+
+
+
 
         # Warn the user they sent an argument we are not expecting
         for kw_arg, kw_value in kwargs.items():
@@ -185,25 +198,24 @@ class ClipBase:
                         'start_time': audio_start_time,
                         'time_base': audio_time_base,
                         }
-        self.audio_sample_rate = audio_sample_rate
+        if audio_sample_rate:
+            self.audio_sample_rate = audio_sample_rate
 
         # Clip specific attributes
-        self._clip_audio = None                                           # The audio data of the clip itself
         clip_frames = [] if not clip_frames is None else clip_frames      # The frames of the clip itself
         self._clip = {
                            'behavior': clip_behavior,
                            'end_time': clip_end_time,                     # End time of the clip itself
                            'fps': clip_fps,                               # Frames per second for the clip
                            'frames': clip_frames,                         # Frames that comprise the clip
-                           'height': None,                                # Height (in pixels) of the clip
+                           'height': clip_height,                         # Height (in pixels) of the clip
                            'include_audio': clip_include_audio,           # Should the audio be included when rendered
                            'pixel_format': clip_pixel_format,             # Pixel format to use while video processing
                            'number_frames': None,                         # Number of video frames in the clip
                            'position_x': int(clip_position[0]),           # x coordinate for the clip
                            'position_y': int(clip_position[1]),           # y coordinate for the clip
-                           'resolution': None,                            # Resolution string '{width}x{height}'
                            'start_time': clip_start_time,                 # Start time in seconds
-                           'width': None,                                 # Width (in pixels) of the clip
+                           'width': clip_width,                           # Width (in pixels) of the clip
                       }
 
         # Video specific attributes
@@ -232,7 +244,6 @@ class ClipBase:
                             'pixel_format': video_pix_fmt,
                             'profile': video_profile,
                             'refs': video_refs,
-                            'resolution': f"{clip_width}x{clip_height}",
                             'r_frame_rate': video_r_frame_rate,
                             'start': video_start,
                             'start_pts': video_start_pts,
@@ -258,6 +269,7 @@ class ClipBase:
             raise ValueError(f"{type(self).__name__} end time {self.end_time} "
                              f"exceeds video length of {self.video_end_time}. "
                              f"Change clip_behavior parameter to allowing for looping or padding of the video")
+
 
     ############################
     # Property Methods - Audio #
@@ -293,7 +305,14 @@ class ClipBase:
         Set the audio sample rate
         :param value: audio sample rate value
         """
-        self._audio['sample_rate'] = int(value)
+        try:
+            value = int(value) if value else value
+        except TypeError:
+            logger = getLogger(__name__)
+            logger.warning(f"{type(self).__name__}.audio_sample_rate='{value}' is invalid. "
+                           f"{type(self).__name__}.audio_sample_rate has not been modified.")
+
+        self._audio['sample_rate'] = value
 
     ######################################
     # Property Methods - Clip Attributes #
@@ -502,10 +521,12 @@ class ClipBase:
         :return:
         """
         # If clip resolution is already set, return it
-        if self._clip['resolution']:
+        if 'resolution' in self._clip:
             return self._clip['resolution']
 
+        # Set resolution to the width x height of the clip
         self._clip['resolution'] = f"{self.width}x{self.height}"
+
         return self._clip['resolution']
 
     @property
@@ -697,6 +718,14 @@ class ClipBase:
         :returns:
             int - Frames per second for the video
         """
+        # If already set, just return it
+        if self._video['fps']:
+            return self._video['fps']
+
+        # No video fps was set, default it to our default frame rate (30)
+        self._video['fps'] = DEFAULT_FRAME_RATE
+
+        # Return the video frames per second
         return self._video['fps']
 
     @video_fps.setter
@@ -861,15 +890,18 @@ class ClipBase:
         return self
 
 
-    def audio_normalize(self):
+    def audio_peak_normalize(self):
         """
         Normalize the audio track volume
         :return self: This object, to allow for method chaining
         """
+        logger = getLogger()
+        logger.warning(f'{type(self).__name__}.audio_peak_normalize() has not been implemented yet.')
 
-        #TODO: Implement the normalization
+        audio = self.get_audio_frames()
 
-        # Allows for method chaining
+        # value_dBFS = 20*log10(rms(signal) * sqrt(2))
+
         return self
 
     def audio_stereo_volume(self, left_multiplier:float, right_multiplier:float):
@@ -1761,6 +1793,7 @@ class ClipBase:
         process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stdin=subprocess.PIPE,  bufsize=10 ** 8)
         for frame in self.get_frames():
             process.stdin.write(frame.tobytes())
+
         process.stdin.close()
         process.wait()
 
