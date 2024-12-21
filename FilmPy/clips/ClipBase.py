@@ -39,7 +39,6 @@ class ClipBase:
                  clip_start_time=0,
                  clip_width=None,
                  file_path=None,
-                 clip_frames=None,
                  clip_height=None,
                  clip_include_audio=None,
                  clip_position=(0,0),
@@ -110,7 +109,6 @@ class ClipBase:
         :param clip_start_time:
         :param clip_width:
         :param file_path:
-        :param clip_frames:
         :param clip_height:
         :param clip_include_audio:
         :param clip_position:
@@ -202,12 +200,10 @@ class ClipBase:
             self.audio_sample_rate = audio_sample_rate
 
         # Clip specific attributes
-        clip_frames = [] if not clip_frames is None else clip_frames      # The frames of the clip itself
         self._clip = {
                            'behavior': clip_behavior,
                            'end_time': clip_end_time,                     # End time of the clip itself
                            'fps': clip_fps,                               # Frames per second for the clip
-                           'frames': clip_frames,                         # Frames that comprise the clip
                            'height': clip_height,                         # Height (in pixels) of the clip
                            'include_audio': clip_include_audio,           # Should the audio be included when rendered
                            'pixel_format': clip_pixel_format,             # Pixel format to use while video processing
@@ -816,7 +812,7 @@ class ClipBase:
         altered_frames = []
         luminance_array = np.array([luminance, luminance, luminance])
         red_addend_array = np.array([red_addend, green_addend, blue_addend])
-        for frame in self.get_frames():
+        for frame in self.get_video_frames():
             altered_frames.append((frame + red_addend_array + luminance_array).astype('uint8'))
 
         # Replace the existing frames
@@ -944,7 +940,7 @@ class ClipBase:
         """
 
         altered_frames = []
-        for frame in self.get_frames():
+        for frame in self.get_video_frames():
             image = Image.fromarray(frame).convert(ImageModes.BLACK_AND_WHITE.value)
             frame = np.stack((np.array(image), np.array(image), np.array(image)), axis=2).astype('uint8')
             altered_frames.append(frame)
@@ -989,7 +985,7 @@ class ClipBase:
         # Update the frames
         altered_frames = []
         new_frame = None
-        for frame in self.get_frames():
+        for frame in self.get_video_frames():
             new_frame = np.concatenate((top_row, frame, bottom_row), axis=0)           # Concatenate Rows
             new_frame = np.concatenate((left_column, new_frame, right_column), axis=1) # Concatenate Columns
             altered_frames.append(new_frame.astype('uint8')) # Add to our list of altered frames
@@ -1015,7 +1011,7 @@ class ClipBase:
         logger.debug(f"{type(self).__name__}.consolize(pixel_size={pixel_size})")
 
         altered_frames = []
-        for frame in self.get_frames():
+        for frame in self.get_video_frames():
             image = Image.fromarray(frame)
 
             # Resize smoothly down
@@ -1071,7 +1067,7 @@ class ClipBase:
         self.width = bottom_right_x - top_left_x
 
         # Get the frames to be processed
-        frames = self.get_frames()
+        frames = self.get_video_frames()
 
         # Crop the frames
         logger.debug(f"Cropping image from ({top_left_x},{top_left_y}) to ({bottom_right_x},{bottom_right_y})")
@@ -1108,7 +1104,7 @@ class ClipBase:
         # Alter the video frames accordingly
         if self.has_video:
             # Get the frames
-            frames = self.get_frames()
+            frames = self.get_video_frames()
 
             # Determine the cut frame indices
             start_index = int(self.fps * start_time)
@@ -1172,7 +1168,7 @@ class ClipBase:
                      f"Blue x {blue_divisor}, Luminance={luminance}")
         altered_frames = []
         luminance_array = np.array([luminance, luminance, luminance])
-        for frame in self.get_frames():
+        for frame in self.get_video_frames():
             altered_frames.append((frame / (red_divisor, green_divisor, blue_divisor) / luminance_array).astype('uint8'))
 
         # Replace the existing frames
@@ -1192,7 +1188,7 @@ class ClipBase:
         # Invert colors of each frame
         logger.debug(f"Inverting colors")
         altered_frames = []
-        for frame in self.get_frames():
+        for frame in self.get_video_frames():
             altered_frames.append((255 - frame).astype('uint8'))
 
         # Replace the existing frames
@@ -1237,7 +1233,7 @@ class ClipBase:
         # Update frames
         logger.info(f"Gamma correcting footage (gamma='{gamma}')")
         altered_frames = []
-        for frame in self.get_frames():
+        for frame in self.get_video_frames():
             new_frame = (255 * (1.0 * frame / 255) ** gamma).astype('uint8')
             altered_frames.append(new_frame)
 
@@ -1315,7 +1311,7 @@ class ClipBase:
         # Return the mask frames
         return self._mask['frames']
 
-    def get_frames(self):
+    def get_video_frames(self):
         """
         Get the video frames list for this clip
         :return:
@@ -1323,8 +1319,8 @@ class ClipBase:
         # logger = getLogger(__name__)
         # logger.debug("Getting frames")
         # Return the already created frames
-        if self._clip['frames']:
-            return self._clip['frames']
+        if self._video['frames']:
+            return self._video['frames']
 
         # No frames yet exist, default to using the video frames we have
         video_frames = self.get_video_frames()
@@ -1380,7 +1376,7 @@ class ClipBase:
         :return:
         """
         # Get the video frames
-        frames = self.get_frames()
+        frames = self.get_video_frames()
 
         # Ensure we have valid input
         if (frame_index is None) and (frame_time is None):
@@ -1405,14 +1401,6 @@ class ClipBase:
         # Return the requested frame
         return frames[frame_index]
 
-    def get_video_frames(self):
-        """
-        Get the underlying video frames
-
-        :return: List frames from the underlying video
-        """
-        return self._video['frames']
-
     def grayscale(self):
         """
         Converts the video to grayscale
@@ -1420,7 +1408,7 @@ class ClipBase:
         :return self: Enables method chaining
         """
         altered_frames = []
-        for frame in self.get_frames():
+        for frame in self.get_video_frames():
             image = Image.fromarray(frame).convert(ImageModes.GRAYSCALE.value)
             frame = np.stack((np.array(image), np.array(image), np.array(image)), axis=2).astype('uint8')
             altered_frames.append(frame)
@@ -1438,7 +1426,7 @@ class ClipBase:
         :return self: Enable method chaining
         """
         flipped_frames = []
-        for frame in self.get_frames():
+        for frame in self.get_video_frames():
             image = Image.fromarray(frame).transpose(Transpose.FLIP_LEFT_RIGHT.value)
             flipped_frames.append(np.array(image))
 
@@ -1455,7 +1443,7 @@ class ClipBase:
         :return self: Enable method chaining
         """
         flipped_frames = []
-        for frame in self.get_frames():
+        for frame in self.get_video_frames():
             image = Image.fromarray(frame).transpose(Transpose.FLIP_TOP_BOTTOM.value)
             flipped_frames.append(np.array(image))
 
@@ -1495,7 +1483,7 @@ class ClipBase:
                      f"Blue x {blue_multiplier}, Luminance={luminance}")
         altered_frames = []
         luminance_array = np.array([luminance, luminance, luminance])
-        for frame in self.get_frames():
+        for frame in self.get_video_frames():
             altered_frames.append((frame * (red_multiplier, green_multiplier, blue_multiplier) * luminance_array).astype('uint8'))
 
         # Replace the existing frames
@@ -1535,7 +1523,7 @@ class ClipBase:
 
         # Update the frames
         altered_frames = []
-        for frame in self.get_frames():
+        for frame in self.get_video_frames():
             image = Image.fromarray(frame).resize((new_width, new_height), kwargs['resample'])
             altered_frames.append(np.array(image).astype('uint8'))
 
@@ -1556,7 +1544,7 @@ class ClipBase:
         """
 
         # Reverse the footage
-        self.set_frames(self.get_frames()[::-1])
+        self.set_frames(self.get_video_frames()[::-1])
 
         # Return this object to enable method chaining
         return self
@@ -1572,7 +1560,7 @@ class ClipBase:
 
         # Rotate each frame in the clip
         rotated_frames = []
-        for frame in self.get_frames():
+        for frame in self.get_video_frames():
             image = Image.fromarray(frame).rotate(angle)
             rotated_frames.append(np.array(image))
 
@@ -1626,7 +1614,7 @@ class ClipBase:
 
         # Alter the video frames accordingly
         if self.has_video:
-            self.set_frames(self.get_frames())
+            self.set_frames(self.get_video_frames())
 
         # Alter the audio data accordingly
         if self.has_audio:
@@ -1784,7 +1772,7 @@ class ClipBase:
 
         # Write all the video frame data to the PIPE's standard input
         process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stdin=subprocess.PIPE,  bufsize=10 ** 8)
-        for frame in self.get_frames():
+        for frame in self.get_video_frames():
             process.stdin.write(frame.tobytes())
 
         process.stdin.close()
