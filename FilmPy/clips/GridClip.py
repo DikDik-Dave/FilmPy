@@ -25,15 +25,15 @@ class GridClip(ClipBase):
         cell_size = [0,0]
         max_rows_cols =  [0,0]
         all_frames = {}
-        for i in range(len(clips)):
-            for j in range(len(clips[i])):
+        for x in range(len(clips)):
+            for j in range(len(clips[x])):
                 # Get the clip for this cell
-                clip = clips[i][j]
-                all_frames[i,j] = clip.get_frames()
+                clip = clips[x][j]
+                all_frames[x,j] = clip.get_frames()
 
                 # Determine max number of rows and columns
-                if i > max_rows_cols[0]:
-                    max_rows_cols[0] = i
+                if x > max_rows_cols[0]:
+                    max_rows_cols[0] = x
 
                 if j > max_rows_cols[1]:
                     max_rows_cols[1] = j
@@ -58,7 +58,7 @@ class GridClip(ClipBase):
         composited_frames = []
 
         clip_size = ((max_rows_cols[0]+1)*cell_size[1], cell_size[0]*(max_rows_cols[1]+1))
-        for i in range(241):
+        for frame_index in range(241):
             frame = (numpy.tile(bg_pixel, clip_size[0] * clip_size[1])
                      .reshape(clip_size[0], clip_size[1], number_components))
 
@@ -66,17 +66,19 @@ class GridClip(ClipBase):
             for key,clip_frames in all_frames.items():
                 try:
                     # Get the frame for this clip
-                    clip_frame = clip_frames[i]
+                    clip_frame = clip_frames[frame_index]
                 except IndexError:
-                # This clip has no frame for this frame index, go onto the next frame
+                    # This clip has no frame for this frame index, go onto the next frame
                     continue
 
+
                 # Determine where in the clip it should go
-                i = key[0] * cell_size[1]
-                j = key[1] * cell_size[0]
+                x = key[0] * cell_size[1]
+                y = key[1] * cell_size[0]
 
                 # Project the clip_frame onto the frame
-                frame[i:(i+cell_size[1]), j:(j+cell_size[0])] = clip_frame
+                frame[x:(x+cell_size[1]), y:(y+cell_size[0])] = clip_frame
+                frame = frame.astype('uint8')
 
             # Add the frame to the list of composited frames
             composited_frames.append(frame)
