@@ -14,7 +14,7 @@ class Clip(ClipBase):
     Video Clip from a file
     """
     def __init__(self, file_path=None,
-                 clip_frames=None,
+                 video_frames=None,
                  clip_start_time=0,
                  clip_end_time=None,
                  clip_size=(None,None),
@@ -29,11 +29,11 @@ class Clip(ClipBase):
         :param clip_include_audio: Should the audio be written for this clip
         """
         # Check to make sure we did not receive potentially conflicting inputs
-        if clip_frames and file_path:
+        if video_frames and file_path:
             msg = (f" {type(self).__name__} - Conflicting input received. "
                    f"Either provide frames or video_path, not both.")
             raise ValueError(msg)
-        elif (not clip_frames) and (not file_path):
+        elif (not video_frames) and (not file_path):
             msg = (f" {type(self).__name__} - Invalid input received. "
                    f"Either provide frames or video_path.")
             raise ValueError(msg)
@@ -49,7 +49,7 @@ class Clip(ClipBase):
                          clip_start_time=clip_start_time,
                          clip_end_time=clip_end_time,
                          clip_include_audio=clip_include_audio,
-                         clip_frames=clip_frames,
+                         video_frames=video_frames,
                          file_path=file_path,
                          **kwargs)
 
