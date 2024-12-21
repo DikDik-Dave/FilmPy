@@ -90,4 +90,4 @@ class ChessClip(ClipBase):
             for _ in range(self.fps * chess_move_duration):
                 frames.append(move_frame)
 
-        self.set_frames(frames)
+        self.set_video_frames(frames)
