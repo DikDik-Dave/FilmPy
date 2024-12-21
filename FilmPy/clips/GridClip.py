@@ -88,4 +88,4 @@ class GridClip(ClipBase):
         self.height = clip_size[0]
 
         # Set the frames for this clip
-        self.set_frames(composited_frames)
+        self.set_video_frames(composited_frames)
