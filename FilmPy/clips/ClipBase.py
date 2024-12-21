@@ -654,13 +654,6 @@ class ClipBase:
         self._video['number_frames'] = int(value)
 
     @property
-    def video_pixel_format(self) -> str:
-        """
-        Pixel format of the underlying video
-        """
-        return self._video['pix_fmt']
-
-    @property
     def video_width(self) -> int:
         """
         Width of the underlying video associated to this clip
