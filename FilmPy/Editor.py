@@ -2,8 +2,9 @@ import os
 
 from logging import getLogger, INFO, StreamHandler, FileHandler, Formatter
 
-from FilmPy.clips import ColorClip, CompositeClip, Clip, ImageClip, TextClip
+from FilmPy.clips import ChessClip, ColorClip, CompositeClip, Clip, ImageClip, TextClip
 from FilmPy.Sequence import Sequence
+from FilmPy.clips.GridClip import GridClip
 from FilmPy.constants import *
 
 
@@ -15,6 +16,21 @@ class Editor:
     ##################################
     # Object Instantiation Functions #
     ##################################
+    @classmethod
+    def chess_clip(cls, *args, **kwargs) -> ChessClip:
+        """
+        Instantiate a ChessClip object
+
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        # We have one argument, treat it as file_path
+        if len(args) == 1:
+            kwargs['file_path'] = args[0]
+
+        return ChessClip(**kwargs)
+
     @classmethod
     def color_clip(cls,
                     *args,
@@ -62,6 +78,16 @@ class Editor:
         :return:
         """
         return ImageClip(**kwargs)
+
+    @classmethod
+    def grid_clip(cls, **kwargs) -> GridClip:
+        """
+        Instantiate and return a GridClip object
+
+        :param kwargs: Keyword arguments for GridClip
+        :return GridClip: GridClip object
+        """
+        return GridClip(**kwargs)
 
     @classmethod
     def sequence(cls) -> Sequence:
