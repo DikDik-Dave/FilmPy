@@ -74,7 +74,7 @@ class ImageClip(ClipBase):
 
 
         # Instantiate ClipBase
-        super().__init__(clip_frames=video_frames,  # Frames for this clip
+        super().__init__(video_frames=video_frames,  # Frames for this clip
                          clip_start_time=clip_start_time,
                          clip_end_time=clip_end_time,
                          video_fps=video_fps,
@@ -82,5 +82,4 @@ class ImageClip(ClipBase):
                          clip_width=clip_width,
                          clip_height=clip_height,
                          clip_pixel_format=clip_pixel_format,
-                         video_frames=video_frames,
                          **kwargs)
