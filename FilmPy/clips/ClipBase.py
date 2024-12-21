@@ -215,7 +215,7 @@ class ClipBase:
                       }
 
         # Video specific attributes
-        video_frames = [] if not video_frames else video_frames         # Frames that make up the video
+        video_frames, video_frames_initialized = ([],False) if not video_frames else (video_frames,True)
         self._video = {     'average_frame_rate': video_avg_frame_rate,
                             'bit_rate': video_bit_rate,
                             'bits_per_raw_sample': video_bits_per_raw_sample,
@@ -229,9 +229,10 @@ class ClipBase:
                             'disposition': video_disposition,
                             'duration': video_duration,
                             'duration_ts': video_duration_ts,
-                            'end_time': video_end_time,                 # Duration of the video
-                            'fps': video_fps,                           # FPS for the underlying video
-                            'frames': video_frames,                     # Frames for the underlying video
+                            'end_time': video_end_time,                      # Duration of the video
+                            'fps': video_fps,                                # FPS for the underlying video
+                            'frames': video_frames,                          # Frames for the underlying video
+                            'frames_initialized':  video_frames_initialized, # Do we have the frames already?
                             'has_b_frames': video_has_b_frames,
                             'is_avc': video_is_avc,
                             'height': video_height,
@@ -816,7 +817,7 @@ class ClipBase:
             altered_frames.append((frame + red_addend_array + luminance_array).astype('uint8'))
 
         # Replace the existing frames
-        self.set_frames(altered_frames)
+        self.set_video_frames(altered_frames)
 
         # Return this object to enable method chaining
         return self
@@ -946,7 +947,7 @@ class ClipBase:
             altered_frames.append(frame)
 
         # Replace the clip frames with the now rotated frames
-        self.set_frames(altered_frames)
+        self.set_video_frames(altered_frames)
 
         # Return this object to enable method chaining
         return self
@@ -995,7 +996,7 @@ class ClipBase:
         self.width = new_frame.shape[1]
 
         # Set the new frames for this video
-        self.set_frames(altered_frames)
+        self.set_video_frames(altered_frames)
 
         # Enable method chaining
         return self
@@ -1021,7 +1022,7 @@ class ClipBase:
             altered_frames.append(np.array(image_small.resize(self.size, Image.Resampling.NEAREST)))
 
         # Update clip frames
-        self.set_frames(altered_frames)
+        self.set_video_frames(altered_frames)
 
         # Enable method chaining
         return self
@@ -1079,7 +1080,7 @@ class ClipBase:
         logger.debug(f"{len(cropped_frames)} frames cropped")
 
         # Replace the frames with the new frames
-        self.set_frames(cropped_frames)
+        self.set_video_frames(cropped_frames)
 
         # Enable method chaining
         return self
@@ -1114,7 +1115,7 @@ class ClipBase:
             frames = frames[0:start_index] + frames[end_index:]
 
             # Update the clip attributes
-            self.set_frames(frames)
+            self.set_video_frames(frames)
             self.number_frames = len(frames)
 
             # Should this line, be outside the if block??
@@ -1172,7 +1173,7 @@ class ClipBase:
             altered_frames.append((frame / (red_divisor, green_divisor, blue_divisor) / luminance_array).astype('uint8'))
 
         # Replace the existing frames
-        self.set_frames(altered_frames)
+        self.set_video_frames(altered_frames)
 
         # Return this object to enable method chaining
         return self
@@ -1192,7 +1193,7 @@ class ClipBase:
             altered_frames.append((255 - frame).astype('uint8'))
 
         # Replace the existing frames
-        self.set_frames(altered_frames)
+        self.set_video_frames(altered_frames)
 
         # Return this object to enable method chaining
         return self
@@ -1237,7 +1238,7 @@ class ClipBase:
             new_frame = (255 * (1.0 * frame / 255) ** gamma).astype('uint8')
             altered_frames.append(new_frame)
 
-        self.set_frames(altered_frames)
+        self.set_video_frames(altered_frames)
         logger.info(f"Finished gamma correcting footage (gamma='{gamma}')")
 
         # Enable method chaining
@@ -1319,7 +1320,7 @@ class ClipBase:
         # logger = getLogger(__name__)
         # logger.debug("Getting frames")
         # Return the already created frames
-        if self._video['frames']:
+        if self._video['frames_initialized']:
             return self._video['frames']
 
         # No frames yet exist, default to using the video frames we have
@@ -1335,7 +1336,7 @@ class ClipBase:
 
         # We need fewer frames than we have
         if frames_needed <= self.video_number_frames:
-            self.set_frames(video_frames[self.start_frame:self.end_frame])
+            self.set_video_frames(video_frames[self.start_frame:self.end_frame])
         # We need to loop over the footage till we have the amount of frames we need
         elif self.behavior == Behavior.LOOP_FRAMES.value:
             looped_frames = []
@@ -1348,7 +1349,7 @@ class ClipBase:
                     looped_frames.extend(video_frames[0:frames_needed])
                     frames_needed -= frames_needed
 
-            self.set_frames(looped_frames)
+            self.set_video_frames(looped_frames)
         # Need to pad the footage
         elif self.behavior == Behavior.PAD.value:
             color = (77, 128, 90)
@@ -1358,10 +1359,13 @@ class ClipBase:
                           .astype('uint8'))
 
             video_frames.extend([pad_frame] * number_pad_frames)
-            self.set_frames(video_frames)
+            self.set_video_frames(video_frames)
+
+        # Indicate the frames have been initialized
+        self._video['frames_initialized'] = True
 
         # Return the frames
-        return self._clip['frames']
+        return self._video['frames']
 
     def get_video_frame(self,
                   frame_index:int=None,
@@ -1414,7 +1418,7 @@ class ClipBase:
             altered_frames.append(frame)
 
         # Replace the clip frames with the now rotated frames
-        self.set_frames(altered_frames)
+        self.set_video_frames(altered_frames)
 
         # Return this object to enable method chaining
         return self
@@ -1431,7 +1435,7 @@ class ClipBase:
             flipped_frames.append(np.array(image))
 
         # Replace the clip frames with the now rotated frames
-        self.set_frames(flipped_frames)
+        self.set_video_frames(flipped_frames)
 
         # Return this object to enable method chaining
         return self
@@ -1448,7 +1452,7 @@ class ClipBase:
             flipped_frames.append(np.array(image))
 
         # Replace the clip frames with the now rotated frames
-        self.set_frames(flipped_frames)
+        self.set_video_frames(flipped_frames)
 
         # Return this object to enable method chaining
         return self
@@ -1487,7 +1491,7 @@ class ClipBase:
             altered_frames.append((frame * (red_multiplier, green_multiplier, blue_multiplier) * luminance_array).astype('uint8'))
 
         # Replace the existing frames
-        self.set_frames(altered_frames)
+        self.set_video_frames(altered_frames)
 
         # Return this object to enable method chaining
         return self
@@ -1532,7 +1536,7 @@ class ClipBase:
         self.width = new_width
 
         # Set the new frames for this video
-        self.set_frames(altered_frames)
+        self.set_video_frames(altered_frames)
 
         # Return this object to enable method chaining
         return self
@@ -1544,7 +1548,7 @@ class ClipBase:
         """
 
         # Reverse the footage
-        self.set_frames(self.get_video_frames()[::-1])
+        self.set_video_frames(self.get_video_frames()[::-1])
 
         # Return this object to enable method chaining
         return self
@@ -1565,7 +1569,7 @@ class ClipBase:
             rotated_frames.append(np.array(image))
 
         # Replace the clip frames with the now rotated frames
-        self.set_frames(rotated_frames)
+        self.set_video_frames(rotated_frames)
 
         # Return this object to enable method chaining
         return self
@@ -1580,14 +1584,14 @@ class ClipBase:
 
         self._audio['frames'] = value.astype(np.int16)
 
-    def set_frames(self, value):
+    def set_video_frames(self, value):
         """
         Set the new clip frames
         """
         if not isinstance(value, list):
             raise ValueError(f"{type(self).__name__}.clip_frames must be a list of numpy.array objects")
 
-        self._clip['frames'] = value
+        self._video['frames'] = value
 
     def trim(self, exclude_before=None, exclude_after=None):
         """
@@ -1614,7 +1618,7 @@ class ClipBase:
 
         # Alter the video frames accordingly
         if self.has_video:
-            self.set_frames(self.get_video_frames())
+            self.set_video_frames(self.get_video_frames())
 
         # Alter the audio data accordingly
         if self.has_audio:
