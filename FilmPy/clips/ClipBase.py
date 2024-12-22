@@ -1324,7 +1324,7 @@ class ClipBase:
             return self._video['frames']
 
         # No frames yet exist, default to using the video frames we have
-        video_frames = self.get_video_frames()
+        video_frames = self.get_video_frames_from_file()
 
         # Determine how many frames we need
         frames_needed = self.end_frame - self.start_frame
@@ -1366,6 +1366,40 @@ class ClipBase:
 
         # Return the frames
         return self._video['frames']
+
+    def get_video_frames_from_file(self):
+        """
+        Get the video frames
+        :return: List of frames
+        """
+        logger = getLogger(__name__)
+
+        # Call ffmpeg and pipe it's output
+        command = [FFMPEG_BINARY,
+                   '-i', self.file_path,                        # File we will load video frames from
+                   '-f', 'image2pipe',                          # Format is 'image2pipe'
+                   '-pix_fmt', self.pixel_format,               # Pixel format we will use internally
+                   '-vcodec', 'rawvideo',                       # Set video codec to 'rawvideo'
+                   '-']                                         # Pipe the output
+
+        # Read the video data
+        logger.debug(f'Calling ffmpeg \"{' '.join(command)}\"')
+        completed_process = subprocess.run(command, capture_output=True)
+
+        # Get all frames
+        frame_length = self._video['width'] * self._video['height'] * 3
+        video_frames = []
+        for i in range(0, len(completed_process.stdout), frame_length):
+            frame = completed_process.stdout[i:i + frame_length]
+            frame = np.fromstring(frame, dtype='uint8').reshape((self._video['height'],
+                                                                    self._video['width'],
+                                                                    3))
+
+            # Store the frame in our frames list
+            video_frames.append(frame)
+
+        # Return the video frames
+        return video_frames
 
     def get_video_frame(self,
                   frame_index:int=None,
@@ -1591,6 +1625,7 @@ class ClipBase:
         if not isinstance(value, list):
             raise ValueError(f"{type(self).__name__}.clip_frames must be a list of numpy.array objects")
 
+        self._video['frames_initialized'] = True
         self._video['frames'] = value
 
     def trim(self, exclude_before=None, exclude_after=None):
