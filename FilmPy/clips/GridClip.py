@@ -29,7 +29,7 @@ class GridClip(ClipBase):
             for j in range(len(clips[x])):
                 # Get the clip for this cell
                 clip = clips[x][j]
-                all_frames[x,j] = clip.get_frames()
+                all_frames[x,j] = clip.get_video_frames()
 
                 # Determine max number of rows and columns
                 if x > max_rows_cols[0]:
