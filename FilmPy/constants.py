@@ -18,6 +18,32 @@ VIDEO_CODECS = {'mp4': ["libx264", "libmpeg4", "aac"],
                 'ogv': ['libvorbis'],
                 'webm': ["libvorbis"]}
 
+
+# Audio formats
+# [nix:ffmpeg -formats | grep PCM] [windows: ffmpeg -formats | FINDSTR PCM]
+AUDIO_FORMATS = {
+    'alaw' :'PCM A-law',
+    'f32be':'PCM 32-bit floating-point big-endian',
+    'f32le':'PCM 32-bit floating-point little-endian',
+    'f64be':'PCM 64-bit floating-point big-endian',
+    'f64le':'PCM 64-bit floating-point little-endian',
+    'mulaw':'PCM mu-law',
+    's16be':'PCM signed 16-bit big-endian',
+    's16le':'PCM signed 16-bit little-endian',
+    's24be':'PCM signed 24-bit big-endian',
+    's24le':'PCM signed 24-bit little-endian',
+    's32be':'PCM signed 32-bit big-endian',
+    's32le':'PCM signed 32-bit little-endian',
+    's8'   :'PCM signed 8-bit',
+    'u16be':'PCM unsigned 16-bit big-endian',
+    'u16le':'PCM unsigned 16-bit little-endian',
+    'u24be':'PCM unsigned 24-bit big-endian',
+    'u24le':'PCM unsigned 24-bit little-endian',
+    'u32be':'PCM unsigned 32-bit big-endian',
+    'u32le':'PCM unsigned 32-bit little-endian',
+    'u8'   : 'PCM unsigned 8-bit',
+    'vidc' : 'PCM Archimedes VIDC'}
+
 # ffmpeg pixel formats
 PIXEL_FORMATS = {
     'yuv420p': { 'bitstream': False,
@@ -390,7 +416,21 @@ PIXEL_FORMATS = {
                     'paletted': False,
                     'hardware_accelerated': False,
                     'nb_components': 3,
-                    'bits_per_pixel': 32}
+                    'bits_per_pixel': 32},
+    'yuv444p16le': {'bitstream': False,
+                    'input': True,
+                    'output': True,
+                    'paletted': False,
+                    'hardware_accelerated': False,
+                    'nb_components': 3,
+                    'bits_per_pixel': 48},
+    'yuv444p16be': {'bitstream': False,
+                    'input': True,
+                    'output': True,
+                    'paletted': False,
+                    'hardware_accelerated': False,
+                    'nb_components': 3,
+                    'bits_per_pixel': 48}
 }
 
 
@@ -404,8 +444,6 @@ I.... = Supported Input  format for conversion
 ....B = Bitstream format
 FLAGS NAME            NB_COMPONENTS BITS_PER_PIXEL
 -----
-IO... yuv444p16le            3            48
-IO... yuv444p16be            3            48
 ..H.. dxva2_vld              0             0
 IO... rgb444le               3            12
 IO... rgb444be               3            12
