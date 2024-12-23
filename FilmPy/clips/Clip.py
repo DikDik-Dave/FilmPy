@@ -13,12 +13,9 @@ class Clip(ClipBase):
     """
     Video Clip from a file
     """
-    def __init__(self, file_path=None,
-                 video_frames=None,
-                 clip_start_time=0,
-                 clip_end_time=None,
+    def __init__(self,
+                 file_path=None,
                  clip_size=(None,None),
-                 clip_include_audio=True,
                  **kwargs):
         """
         Initialize a VideoClip from either a file or via direct frame data
@@ -29,14 +26,14 @@ class Clip(ClipBase):
         :param clip_include_audio: Should the audio be written for this clip
         """
         # Check to make sure we did not receive potentially conflicting inputs
-        if video_frames and file_path:
-            msg = (f" {type(self).__name__} - Conflicting input received. "
-                   f"Either provide frames or video_path, not both.")
-            raise ValueError(msg)
-        elif (not video_frames) and (not file_path):
-            msg = (f" {type(self).__name__} - Invalid input received. "
-                   f"Either provide frames or video_path.")
-            raise ValueError(msg)
+        # if video_frames and file_path:
+        #     msg = (f" {type(self).__name__} - Conflicting input received. "
+        #            f"Either provide frames or video_path, not both.")
+        #     raise ValueError(msg)
+        # elif (not video_frames) and (not file_path):
+        #     msg = (f" {type(self).__name__} - Invalid input received. "
+        #            f"Either provide frames or video_path.")
+        #     raise ValueError(msg)
 
         # If the clip is associated to a file, load information about the file
         if file_path:
@@ -46,10 +43,6 @@ class Clip(ClipBase):
         # after we have processed the metadata for this clip
         super().__init__(clip_width=clip_size[0],
                          clip_height=clip_size[1],
-                         clip_start_time=clip_start_time,
-                         clip_end_time=clip_end_time,
-                         clip_include_audio=clip_include_audio,
-                         video_frames=video_frames,
                          file_path=file_path,
                          **kwargs)
 
