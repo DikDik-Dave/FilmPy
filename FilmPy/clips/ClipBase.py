@@ -3,6 +3,7 @@ import os
 from logging import getLogger
 from subprocess import DEVNULL, PIPE
 
+import numpy
 from PIL import Image
 
 from FilmPy.constants import *
@@ -26,6 +27,7 @@ class ClipBase:
                  audio_duration=None,
                  audio_duration_ts=None,
                  audio_frames=None,
+                 audio_get_frame=None,
                  audio_nb_frames=None,
                  audio_r_frame_rate=None,
                  audio_sample_fmt=None,
@@ -176,6 +178,7 @@ class ClipBase:
         if clip_pixel_format not in PIXEL_FORMATS.keys():
             raise ValueError(f"'{clip_pixel_format}' is not a valid value for clip_pixel_format.")
 
+        audio_frames_initialized = True if audio_frames else False
         # Audio Specific Attributes
         self._audio = { 'average_frame_rate': audio_avg_frame_rate,
                         'bits_per_sample': audio_bits_per_sample,
@@ -188,7 +191,9 @@ class ClipBase:
                         'disposition': audio_disposition,
                         'duration': audio_duration,
                         'duration_ts': audio_duration_ts,
+                        'get_frame': audio_get_frame,
                         'frames': audio_frames,
+                        'frames_initialized': audio_frames_initialized,
                         'number_frames': audio_nb_frames,
                         'r_frame_rate': audio_r_frame_rate,
                         'sample_format': audio_sample_fmt,
@@ -763,11 +768,14 @@ class ClipBase:
         audio_data = self.get_audio_frames()
 
         # FFMPEG Command to write audio to a file
+        audio_codec = 'pcm_u8' if self.audio_channels == 1 else 'pcm_s%dle' % (8 * self.audio_channels)
+        audio_file_format = 's8' if self.audio_channels == 1 else 's%dle' % (8 * self.audio_channels)
+
         ffmpeg_command = [
             FFMPEG_BINARY, '-y',
             '-loglevel', ffmpeg_log_level,                          # Set ffmpeg's log level accordingly
-            "-f", 's%dle' % (8 * self.audio_channels),
-            "-acodec", 'pcm_s%dle' % (8 * self.audio_channels),
+            "-f", audio_file_format,
+            "-acodec", audio_codec,
             '-ar', "%d" % self.audio_sample_rate,
             '-ac', "%d" % self.audio_channels,
             '-i', '-',
@@ -1252,26 +1260,43 @@ class ClipBase:
         """
         logger = getLogger(__name__)
 
-        # self._file_path, fps, number_bytes, number_channels
-        if self._audio['frames'] is not None:
+        # We have already initialized the frames, so we can just return them
+        if self._audio['frames_initialized']:
             return self._audio['frames']
 
-        ffmpeg_command = [FFMPEG_BINARY,
-                          '-i', self.file_path, '-vn',
-                          '-loglevel', 'error',
-                          '-f', 's%dle' % (8 * self.audio_channels),
-                          '-acodec', 'pcm_s%dle' % (8 * self.audio_channels),
-                          '-ar', '%d' % self.audio_sample_rate,
-                          '-ac', '%d' % self.audio_channels,
-                          '-'
-                          ]
+        # Mark the frames as having been initialized
+        self._audio['frames_initialized'] = True
 
-        logger.debug(f"Calling ffmpeg to get audio \"{' '.join(ffmpeg_command)}\"")
-        completed_process = subprocess.run(ffmpeg_command, capture_output=True)
+        # We have a file that may have audio, and we will attempt to get the frames from it
+        if self.file_path:
+            ffmpeg_command = [FFMPEG_BINARY,
+                              '-i', self.file_path, '-vn',
+                              '-loglevel', 'error',
+                              '-f', 's%dle' % (8 * self.audio_channels),
+                              '-acodec', 'pcm_s%dle' % (8 * self.audio_channels),
+                              '-ar', '%d' % self.audio_sample_rate,
+                              '-ac', '%d' % self.audio_channels,
+                              '-'
+                              ]
 
-        # return completed_process.stdout
-        dt = {1: 'int8', 2: 'int16', 4: 'int32'}[self.audio_channels]
-        self._audio['frames'] = np.fromstring(completed_process.stdout, dtype=dt).reshape(-1, self.audio_channels)
+            logger.debug(f"Calling ffmpeg to get audio \"{' '.join(ffmpeg_command)}\"")
+            completed_process = subprocess.run(ffmpeg_command, capture_output=True)
+
+            # return completed_process.stdout
+            dt = {1: 'int8', 2: 'int16', 4: 'int32'}[self.audio_channels]
+            self._audio['frames'] = np.fromstring(completed_process.stdout, dtype=dt).reshape(-1, self.audio_channels)
+
+        # We were given a get_frame(t) function that we can use to generate the frames
+        if self._audio['get_frame']:
+            audio_frames = []
+            start_frame = int(self.start_time * self.audio_sample_rate)
+            end_frame = int(self.end_time * self.audio_sample_rate)
+            for i in range(start_frame, end_frame):
+                frame_time = float(i / self.audio_sample_rate)
+                audio_frame = self._audio['get_frame'](frame_time)
+                audio_frames.append(audio_frame)
+            self._audio['frames'] = np.array(audio_frames).astype('int8')
+        # Return the audio frames
         return self._audio['frames']
 
     def get_mask_frames(self, pixel_format=None):
