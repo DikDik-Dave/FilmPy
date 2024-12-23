@@ -1259,6 +1259,7 @@ class ClipBase:
         :return:
         """
         logger = getLogger(__name__)
+        logger.debug(f"{type(self).__name__}.get_audio_frames()")
 
         # We have already initialized the frames, so we can just return them
         if self._audio['frames_initialized']:
@@ -1288,6 +1289,16 @@ class ClipBase:
 
         # We were given a get_frame(t) function that we can use to generate the frames
         if self._audio['get_frame']:
+            logger.debug('audio_get_frame function detected. ')
+            audio_channels = len(self._audio['get_frame'](0))
+            if self.audio_channels is None:
+                logger.debug(f"Setting {type(self).__name__}.audio_channels={audio_channels}")
+                self.audio_channels = audio_channels
+            elif self.audio_channels != audio_channels:
+                logger.warning(f"{audio_channels} audio channels detected, "
+                               f"but {type(self).__name__}.audio_channels == {self.audio_channels}. ")
+                logger.warning(f"Setting {type(self).__name__}.audio_channels={audio_channels}")
+                self.audio_channels = audio_channels
             audio_frames = []
             start_frame = int(self.start_time * self.audio_sample_rate)
             end_frame = int(self.end_time * self.audio_sample_rate)
@@ -1295,7 +1306,9 @@ class ClipBase:
                 frame_time = float(i / self.audio_sample_rate)
                 audio_frame = self._audio['get_frame'](frame_time)
                 audio_frames.append(audio_frame)
+            logger.debug(f"{len(audio_frames)} created.")
             self._audio['frames'] = np.array(audio_frames).astype('int8')
+
         # Return the audio frames
         return self._audio['frames']
 
