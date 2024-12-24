@@ -15,6 +15,7 @@
   - Added `ClipBase.behavior` -- Needs more work
 - Added `library/ClipBase.py` methods
   - Added `ClipBase.__init__()` - Initialize the ClipBase object itself
+  - Added `ClipBase._read_audio()` - Reads audio from a file.
   - Added `ClipBase.play_audio()` - Plays the audio frames for this clip, via ffplay
 - Added library/Clip.py - A clip with audio and/or video
 - Added library/ImageClip.py - Clip class to generate clips from a single image
