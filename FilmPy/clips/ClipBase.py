@@ -1594,7 +1594,7 @@ class ClipBase:
         # Get audio frames
         audio_data = self.get_audio_frames()
 
-        ffplay_command = ['ffplay',
+        ffplay_command = [FFPLAY_BINARY,
                           '-loglevel','error',
                           '-autoexit',
                           '-nodisp',
