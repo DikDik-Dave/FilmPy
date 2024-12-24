@@ -1313,7 +1313,7 @@ class ClipBase:
                 frame_time +=  (1 / self.audio_sample_rate)
                 audio_frame = self._audio['get_frame'](frame_time)
                 audio_frames.append(audio_frame)
-            logger.debug(f"{len(audio_frames)} created.")
+            logger.debug(f"{len(audio_frames)}  audio frames created. Clip duration of {self.duration} second(s).")
 
             data_type = {1: 'int16', 2: 'int16', 4: 'int32'}[self.audio_channels]
             audio_frames = np.array(audio_frames)
@@ -1582,6 +1582,34 @@ class ClipBase:
         # Return this object to enable method chaining
         return self
 
+    def play_audio(self, ffplay_log_level='error'):
+        """
+        Play the audio associated to this clip
+
+        :param ffplay_log_level: Log level to pass to the ffplay call
+        """
+        logger = getLogger(__name__)
+        logger.debug(f'{type(self).__name__}.play_audio()')
+
+        # Get audio frames
+        audio_data = self.get_audio_frames()
+
+        ffplay_command = ['ffplay',
+                          '-loglevel','error',
+                          '-autoexit',
+                          '-nodisp',
+                          '-f','s16le',
+                          '-ar', str(self.audio_sample_rate),
+                          '-ac', str(self.audio_channels),
+                          '-i', '-']
+
+        # Log the ffplay call we will make
+        logger.debug(f"Calling ffplay to play audio \"{' '.join(ffplay_command)}\"")
+
+        # Call ffplay, and pipe the audio data to it
+        process = subprocess.Popen(ffplay_command, stdin=subprocess.PIPE, bufsize=10 ** 8)
+        process.stdin.write(audio_data.tobytes())
+
     def resize(self, *args, **kwargs):
         """
         Resize the video frames for the clip
@@ -1665,9 +1693,11 @@ class ClipBase:
         Set the audio data for this clip
         :return:
         """
+        # Ensure we have an n dimensional array
         if not isinstance(value, np.ndarray):
             raise ValueError(f"{type(self).__name__}.audio_data must be an numpy array")
-        print(value.dtype)
+
+        # Set self._audio['frames'] to `value`
         self._audio['frames'] = value
 
     def set_video_frames(self, value):
