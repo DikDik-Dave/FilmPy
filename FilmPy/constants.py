@@ -8,9 +8,13 @@ AUDIO_CODECS = {
     'm4a': ["libfdk_aac"]}
 ENVIRONMENT_FILE = ".filmpy.env"
 FONT_EXTENSIONS = ['fon','ttf']                             # Standard extensions for a font file
+
 FFMPEG_BINARY = "ffmpeg.exe"
 FFPROBE_BINARY = 'ffprobe.exe'
+FFPLAY_BINARY = 'ffplay.exe'
+
 DEFAULT_FRAME_RATE = 30
+
 LOG_FILENAME = f"{__name__.split('.')[0]}.log"              # Default log file name to use
 STANDARD_FRAME_RATES = (24,25,30,50,60)                     # Standard frame rates
 VIDEO_CODECS = {'mp4': ["libx264", "libmpeg4", "aac"],
@@ -430,7 +434,42 @@ PIXEL_FORMATS = {
                     'paletted': False,
                     'hardware_accelerated': False,
                     'nb_components': 3,
-                    'bits_per_pixel': 48}
+                    'bits_per_pixel': 48},
+    'dxva2_vld': {'bitstream': False,
+                    'input': False,
+                    'output': False,
+                    'paletted': False,
+                    'hardware_accelerated': True,
+                    'nb_components': 0,
+                    'bits_per_pixel': 0},
+    'rgb444le': {'bitstream': False,
+                  'input': True,
+                  'output': True,
+                  'paletted': False,
+                  'hardware_accelerated': False,
+                  'nb_components': 3,
+                  'bits_per_pixel': 12},
+    'rgb444be': {'bitstream': False,
+                  'input': True,
+                  'output': True,
+                  'paletted': False,
+                  'hardware_accelerated': False,
+                  'nb_components': 3,
+                  'bits_per_pixel': 12},
+    'bgr444le': {'bitstream': False,
+                  'input': True,
+                  'output': True,
+                  'paletted': False,
+                  'hardware_accelerated': False,
+                  'nb_components': 3,
+                  'bits_per_pixel': 12},
+    'bgr444be': {'bitstream': False,
+                  'input': True,
+                  'output': True,
+                  'paletted': False,
+                  'hardware_accelerated': False,
+                  'nb_components': 3,
+                  'bits_per_pixel': 12}
 }
 
 
@@ -444,11 +483,6 @@ I.... = Supported Input  format for conversion
 ....B = Bitstream format
 FLAGS NAME            NB_COMPONENTS BITS_PER_PIXEL
 -----
-..H.. dxva2_vld              0             0
-IO... rgb444le               3            12
-IO... rgb444be               3            12
-IO... bgr444le               3            12
-IO... bgr444be               3            12
 IO... ya8                    2            16
 IO... bgr48be                3            48
 IO... bgr48le                3            48
