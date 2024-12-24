@@ -19,11 +19,14 @@ Some of the benefits of this package over similiar python packages are
 | Increase the audio volume of a clip                  | Composite video clips                   |
 | Create a linear fade in from a given color on a clip | Mirror footage horizontally             |
 | Concatenate clips                                    | Mirror footage vertically               |
-| Save a single image from a video file                | Gamma Correction |
-| Find installed fonts (Windows Only)                  | Convert footage to grayscale |
-| Resize the footage using various resampling methods  | Reverse footage |
-| Configure package level logging                      | |
-| | |
+| Save a single image from a video file                | Gamma Correction                        |
+| Find installed fonts (Windows Only)                  | Convert footage to grayscale            |
+| Resize the footage using various resampling methods  | Reverse footage                         |
+| Configure package level logging                      | Adjust the audio volume of a clips and clip sequences [NOT YET] |
+| Save a single image from a video file                | Save clips as video files                                       |
+| Rotate clips, images, and sequences of clips         | Save a single image from a video file                           |
+| Cut footage out of a clip                            | Trim the beginning or end of a clip                             |
+| Play the video associated with the clip              |  |
 
 ### Expected in version 25.1
 | Features                                             | Features                                              |
@@ -32,16 +35,16 @@ Some of the benefits of this package over similiar python packages are
 | Create a linear fade out to a given color on a clip  | Add static image overlays to a video clip             |
 | ClipBase.audio_fade_out()                            | Clip.fade_in()                                        |
 | ClipBase.fade_out()                                  | Adjust the audio volume of a clips and clip sequences |
-| ClipBase.audio_normalize()                           |                                                       |
+| ClipBase.audio_normalize()                           |  ClipBase.pixel_format()                              |
+| ClipBase.slide_up() [dynamic resize?]                | ClipBase.slide_down() [dynamic resize?]               |
 
 ### Thinking About For Later
 * Different Storage Engines (datatable?)
 * Improved parallezation of processing (too premature)
-
-
-| Adjust the audio volume of a clips and clip sequences [NOT YET] | Save a single image from a video file ||
-| Save clips as video files | Rotate clips, images, and sequences of clips||
-
+* Library level caching of footage (CACHE_DIR, CACHE_SIZE, CACHE_ROTATION)
+* Subtitle Support
+* pytest (or other) testing framework integration
+* librosa?
 
 ## How To Use This Library
 There are two primary interfaces to use FilmPy, importing the package or calling it via command line interface. 
@@ -55,15 +58,21 @@ This class does not need to be instantiated to be used.
 `from FilmPy import Editor`
 
 ### Create some clips 
-Now that you have the editor, you need to create some Clips for you to play around with.
+Now that you have the editor, lets create a clip, transform it, and then write it to video. 
 
 ```
-clip1 = Editor.video_clip('assets/test/.mp4)
-clip2 = Editor.vidoe_clip('assets/test/.mp4')
-sequence = Editor.concatenate(clip1, clip2)
-sequence.write_video_file('output/clip1+clip2.mp4')
+clip = Editor.clip('assets/test/chameleon_small.mp4).mirror_x().mirror_y().write_video('output/chameleon_flipped_and_rotated.mp4')
+```
+
+In the example above, we used method chaining to shorten what we needed to type out. The example below is identical to the one above. 
+
+```
+clip = Editor.clip('assets/test/chameleon_small.mp4)
+clip.mirror_x()
+clip.mirror_y()
+clip.write_video('output/chameleon_flipped_and_rotated.mp4')
 ```
 
 ## Further Reading
  
-For more detailed usage, please refer to the documentation found at www.filmpy.org. 
+For more detailed usage, please refer to the documentation on [www.filmpy.org](http://www.filmpy.org). 
