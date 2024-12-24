@@ -753,6 +753,36 @@ class ClipBase:
     ###################
     # Private Methods #
     ###################
+
+    def _read_audio(self,
+                    file_path=None,
+                    audio_channels=None,
+                    audio_sample_rate=None,
+                    ffmpeg_log_level='error'):
+        """
+        Read audio from a file, via ffmpeg
+        """
+        logger = getLogger(__name__)
+        logger.debug(f'{type(self).__name__}._read_audio(file_path=\'{file_path}\', audio_channels={audio_channels}, '
+                     f'audio_sample_rate={audio_sample_rate}, ffmpeg_log_level=\'{ffmpeg_log_level}\')')
+        ffmpeg_command = [FFMPEG_BINARY,
+                          '-i'        , file_path,
+                          '-vn'       ,
+                          '-loglevel' , ffmpeg_log_level,
+                          '-f'        , 's%dle' % (8 * audio_channels),
+                          '-acodec'   , 'pcm_s%dle' % (8 * audio_channels),
+                          '-ar'       , '%d' % audio_sample_rate,
+                          '-ac'       , '%d' % audio_channels,
+                          '-'
+                          ]
+
+        logger.debug(f"Calling ffmpeg to get audio \"{' '.join(ffmpeg_command)}\"")
+        completed_process = subprocess.run(ffmpeg_command, capture_output=True)
+
+        # return completed_process.stdout
+        dt = {1: 'int16', 2: 'int16', 4: 'int32'}[audio_channels]
+        return np.fromstring(completed_process.stdout, dtype=dt).reshape(-1, audio_channels)
+
     def _write_audio(self,
                      file_path=None,
                      ffmpeg_log_level='error'
@@ -1270,22 +1300,10 @@ class ClipBase:
 
         # We have a file that may have audio, and we will attempt to get the frames from it
         if self.file_path:
-            ffmpeg_command = [FFMPEG_BINARY,
-                              '-i', self.file_path, '-vn',
-                              '-loglevel', 'error',
-                              '-f', 's%dle' % (8 * self.audio_channels),
-                              '-acodec', 'pcm_s%dle' % (8 * self.audio_channels),
-                              '-ar', '%d' % self.audio_sample_rate,
-                              '-ac', '%d' % self.audio_channels,
-                              '-'
-                              ]
-
-            logger.debug(f"Calling ffmpeg to get audio \"{' '.join(ffmpeg_command)}\"")
-            completed_process = subprocess.run(ffmpeg_command, capture_output=True)
-
-            # return completed_process.stdout
-            dt = {1: 'int16', 2: 'int16', 4: 'int32'}[self.audio_channels]
-            self.set_audio_frames(np.fromstring(completed_process.stdout, dtype=dt).reshape(-1, self.audio_channels))
+            audio_frames = self._read_audio(file_path=self.file_path,
+                                            audio_channels=self.audio_channels,
+                                            audio_sample_rate=self.audio_sample_rate)
+            self.set_audio_frames(audio_frames)
 
         # We were given a get_frame(t) function that we can use to generate the frames
         if self._audio['get_frame']:
@@ -1435,7 +1453,7 @@ class ClipBase:
                    '-']                                         # Pipe the output
 
         # Read the video data
-        logger.debug(f'Calling ffmpeg \"{' '.join(command)}\"')
+        logger.debug(f'Calling ffmpeg to get video \"{' '.join(command)}\"')
         completed_process = subprocess.run(command, capture_output=True)
 
         # Get all frames
@@ -1889,7 +1907,7 @@ class ClipBase:
             file_path])
 
         # Log the ffmpeg call we will make
-        logger.debug(f"ffmpeg command \"{' '.join(command)}\"")
+        logger.debug(f"Calling ffmpeg to write video \"{' '.join(command)}\"")
 
         # Write all the video frame data to the PIPE's standard input
         process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stdin=subprocess.PIPE,  bufsize=10 ** 8)
