@@ -1284,13 +1284,17 @@ class ClipBase:
             completed_process = subprocess.run(ffmpeg_command, capture_output=True)
 
             # return completed_process.stdout
-            dt = {1: 'int8', 2: 'int16', 4: 'int32'}[self.audio_channels]
-            self._audio['frames'] = np.fromstring(completed_process.stdout, dtype=dt).reshape(-1, self.audio_channels)
+            dt = {1: 'int16', 2: 'int16', 4: 'int32'}[self.audio_channels]
+            self.set_audio_frames(np.fromstring(completed_process.stdout, dtype=dt).reshape(-1, self.audio_channels))
 
         # We were given a get_frame(t) function that we can use to generate the frames
         if self._audio['get_frame']:
             logger.debug('audio_get_frame function detected. ')
+
+            # Determine the number of audio channels that the audio frame function produces
             audio_channels = len(self._audio['get_frame'](0))
+
+            # Set self.audio_channels, and notify the user appropriately
             if self.audio_channels is None:
                 logger.debug(f"Setting {type(self).__name__}.audio_channels={audio_channels}")
                 self.audio_channels = audio_channels
@@ -1299,15 +1303,25 @@ class ClipBase:
                                f"but {type(self).__name__}.audio_channels == {self.audio_channels}. ")
                 logger.warning(f"Setting {type(self).__name__}.audio_channels={audio_channels}")
                 self.audio_channels = audio_channels
+
+            # Generate the audio frames in question
             audio_frames = []
             start_frame = int(self.start_time * self.audio_sample_rate)
             end_frame = int(self.end_time * self.audio_sample_rate)
+            frame_time = self.start_time
             for i in range(start_frame, end_frame):
-                frame_time = float(i / self.audio_sample_rate)
+                frame_time +=  (1 / self.audio_sample_rate)
                 audio_frame = self._audio['get_frame'](frame_time)
                 audio_frames.append(audio_frame)
             logger.debug(f"{len(audio_frames)} created.")
-            self._audio['frames'] = np.array(audio_frames).astype('int8')
+
+            data_type = {1: 'int16', 2: 'int16', 4: 'int32'}[self.audio_channels]
+            audio_frames = np.array(audio_frames)
+            audio_frames = np.maximum(-0.99, np.minimum(0.99, audio_frames))
+            audio_frames = (2 ** (8 * self.audio_channels - 1) * audio_frames).astype(data_type)
+
+            # Set the newly created audio frames to be the audio frames for the clip
+            self.set_audio_frames(audio_frames)
 
         # Return the audio frames
         return self._audio['frames']
@@ -1653,8 +1667,8 @@ class ClipBase:
         """
         if not isinstance(value, np.ndarray):
             raise ValueError(f"{type(self).__name__}.audio_data must be an numpy array")
-
-        self._audio['frames'] = value.astype(np.int16)
+        print(value.dtype)
+        self._audio['frames'] = value
 
     def set_video_frames(self, value):
         """
