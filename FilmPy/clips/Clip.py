@@ -110,4 +110,20 @@ class Clip(ClipBase):
             elif (b'Stream #0' in line) and (b'Audio:' in line):
                 pass
 
+        # Check that we have the video number of frames, if we have it, we are done
+        if 'video_nb_frames' in keyword_arguments:
+            return keyword_arguments
+
+        # Get the number of frames for the video
+        ffprobe_command = [FFPROBE_BINARY,
+                           '-v', 'error',
+                           '-select_streams', 'v:0',
+                           '-count_frames',
+                           '-show_entries',
+                           'stream=nb_read_frames',
+                           '-of', 'csv=p=0',
+                           video_path]
+        logger.debug(f'Calling ffprobe to get number frames - "{' '.join(ffprobe_command)}"')
+        completed_process = subprocess.run(ffprobe_command, capture_output=True)
+        keyword_arguments['video_nb_frames'] = int(completed_process.stdout)
         return keyword_arguments
