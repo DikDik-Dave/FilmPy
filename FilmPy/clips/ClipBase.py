@@ -2,6 +2,7 @@ import subprocess
 import os
 from logging import getLogger
 from subprocess import DEVNULL, PIPE
+from turtledemo.penrose import start
 
 import numpy
 from PIL import Image
@@ -29,6 +30,7 @@ class ClipBase:
                  audio_frames=None,
                  audio_get_frame=None,
                  audio_nb_frames=None,
+                 audio_profile=None,
                  audio_r_frame_rate=None,
                  audio_sample_fmt=None,
                  audio_sample_rate=None,
@@ -57,6 +59,10 @@ class ClipBase:
                  video_codec_tag_string=None,
                  video_coded_height=None,
                  video_coded_width=None,
+                 video_color_primaries=None,
+                 video_color_range=None,
+                 video_color_space=None,
+                 video_color_transfer=None,
                  video_disposition=None,
                  video_duration=None,
                  video_duration_ts=None,
@@ -195,6 +201,7 @@ class ClipBase:
                         'frames': audio_frames,
                         'frames_initialized': audio_frames_initialized,
                         'number_frames': audio_nb_frames,
+                        'profile': audio_profile,
                         'r_frame_rate': audio_r_frame_rate,
                         'sample_format': audio_sample_fmt,
                         'start_pts': audio_start_pts,
@@ -231,6 +238,10 @@ class ClipBase:
                             'codec_tag_string': video_codec_tag_string,
                             'coded_height': video_coded_height,
                             'coded_width': video_coded_width,
+                            'color_primaries': video_color_primaries,
+                            'color_range': video_color_range,
+                            'color_space': video_color_space,
+                            'color_transfer': video_color_transfer,
                             'disposition': video_disposition,
                             'duration': video_duration,
                             'duration_ts': video_duration_ts,
@@ -292,6 +303,10 @@ class ClipBase:
         :return:
         """
         self._audio['channels'] = int(value)
+
+    @property
+    def audio_profile(self):
+        return self._audio['profile']
 
     @property
     def audio_sample_rate(self) -> int:
@@ -678,6 +693,27 @@ class ClipBase:
         return self._file_path
 
     @property
+    def video_color_primaries(self):
+        """
+        Color Primaries of the video
+        """
+        return self._video['color_primaries']
+
+    @property
+    def video_color_range(self):
+        """
+        Color Range of the video
+        """
+        return self._video['color_range']
+
+    @property
+    def video_color_transfer(self):
+        """
+        Color transfer of the video
+        """
+        return self._video['color_transfer']
+
+    @property
     def video_duration(self) -> float:
         """
         Duration in seconds of the video
@@ -988,6 +1024,85 @@ class ClipBase:
         self.set_video_frames(altered_frames)
 
         # Return this object to enable method chaining
+        return self
+
+    def blink(self,
+              duration_on=2,
+              duration_off=2,
+              start_frame=None,
+              start_frame_time=None,
+              end_frame=None,
+              end_frame_time=None):
+        """
+        Make the footage blink. This is done, by replacing the 'blinking frames' with blank frames
+
+        :param duration_on: Duration in seconds, that the clip will blink for
+        :param duration_off: Duration in seconds, that the clip will not blink for
+        :param start_frame: Frame index of when the overall blinking should start
+        :param start_frame_time: Time in seconds of the frame when the overall blinking should start
+        :param end_frame: Frame index of when the overall blinking should end
+        "param end_frame_time: Time in seconds of the frame when the overall blinking should end
+        """
+        logger = getLogger(__name__)
+        logger.debug(f'{type(self).__name__}.blink(duration_on={duration_on},duration_off={duration_off}, '
+                     f'start_frame={start_frame},start_frame_time={start_frame_time}, end_frame={end_frame},'
+                     f'end_frame_time={end_frame_time})')
+
+
+        # Set the start frame according to user input
+        if not start_frame_time and not start_frame:
+            start_frame = 0
+        elif start_frame_time and start_frame:
+            logger.warning('start_frame_time and start_frame supplied, start_frame_time will be ignored.')
+        elif start_frame_time and not start_frame:
+            start_frame = int(self.fps * start_frame_time)
+
+        # Set the end frame according to user input
+        if not end_frame_time and not end_frame:
+            end_frame = self.number_frames
+        elif end_frame_time and end_frame:
+            logger.warning('end_frame_time and end_frame both supplied, start_frame_time will be ignored.')
+        elif start_frame_time and not start_frame:
+            end_frame = int(self.fps * start_frame_time)
+
+        # Calculate blink on/off frames
+        blink_on_frames_duration = int(self.fps * duration_on)
+        blink_off_frames_duration = int(self.fps * duration_off)
+        # Get the video frames
+        current_frames = self.get_video_frames()
+
+        # Iterate through the frames and create new list of frames
+        new_frames = []
+        blink = {'blink':True, 'number_frames':blink_on_frames_duration}
+        for i in range(len(current_frames)):
+            # We are outside the effect range, so the frame is not modified
+            if (i < start_frame) or (i >= end_frame):
+                new_frames.append(current_frames[i])
+            elif blink['blink']:
+                # Create / add the blank frame
+                blank_frame = numpy.tile(numpy.array((0,0,0)), self.height*self.width).reshape(self.height, self.width, 3)
+                new_frames.append(blank_frame)
+
+                # Decrement the amount of blinking frames we need
+                blink['number_frames'] -= 1
+
+                # we added all the blinking frames, switch blink state
+                if blink['number_frames'] == 0:
+                    blink = {'blink':False, 'number_frames': blink_off_frames_duration}
+            else:
+                # Add the frame, as we're not blinking
+                new_frames.append(current_frames[i])
+
+                # Decrement the amount of non-blinking frames we need
+                blink['number_frames'] -= 1
+
+                # we added all the non-blinking frames, switch blink state
+                if blink['number_frames'] == 0:
+                    blink = {'blink':False, 'number_frames': blink_off_frames_duration}
+
+        self.set_video_frames(new_frames)
+
+        # Enables object method chaining
         return self
 
     def border(self,
