@@ -7,19 +7,28 @@
 
 ### Added
 - Added `library/ClipBase.py` - Base class for all clip objects
-- Added `library/ClipBase.py` properties
+- Added `library/ClipBase.py` audio properties
   - Added `ClipBase.audio_channels` property - How many audio channels 
   - Added `ClipBase.audio_sample_rate` property - Sample Rate of the audio
   - Added `Clip.audio_start_index` getter - Frame Index corresponding to `ClipBase.start_time`
   - Added `ClipBase.audio_end_index` getter - Frame index corresponding to `ClipBase.end_time`
+- Added `library/ClipBase.py` clip properties
   - Added `ClipBase.behavior` -- Needs more work
+  - Added `ClipBase.ffmpeg_binary` - Path to the ffmpeg binary to use
+  - Added `ClipBase.ffplay_binary` - Path to the ffplay binary to use
+  - Added `ClipBase.ffprobe_binary` - Path to the ffprobe binary to use
+  - Added `ClipBase.default_frame_rate` - Default frame rate to use when creating an uninitialized clip
 - Added `library/ClipBase.py` methods
   - Added `ClipBase.__init__()` - Initialize the ClipBase object itself
   - Added `ClipBase._read_audio()` - Reads audio from a file.
+  - Added `ClipBase.blink()` - Blacks out frames of the video to create a blinking effect
   - Added `ClipBase.play_audio()` - Plays the audio frames for this clip, via ffplay
-- Added library/Clip.py - A clip with audio and/or video
-- Added library/ImageClip.py - Clip class to generate clips from a single image
-- Added library/TextClip.py - Clip class to generate a clip from a piece of text
+  - Added `ClipBase.set_pixel_format()` - Changes the internal pixel format used for the video frames
+- Added `library/Clip.py` - A clip with audio and/or video
+- Added `library/Clip.py` - methods
+  - Added `Clip._set_file_information()` - Sets the file information as retrieved from ffmpeg,etc
+- Added `library/ImageClip.py` - Clip class to generate clips from a single image
+- Added `library/TextClip.py` - Clip class to generate a clip from a piece of text
 - Added library/ColorClip.py - Clip class to generate a clip from a color
 - Added library/constants.py - Central place to define constants for use
 - Added library/CompositeClip.py - Clip class that allows the composition of clips 
