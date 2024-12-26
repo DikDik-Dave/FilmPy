@@ -1497,19 +1497,37 @@ class ClipBase:
         # Return the mask frames
         return self._mask['frames']
 
-    def get_video_frames(self):
+    def get_video_frames(self, pixel_format=None):
         """
         Get the video frames list for this clip
+        :param pixel_format: Pixel format of the video frames, If None will use the clip's pixel format
         :return:
         """
-        # logger = getLogger(__name__)
-        # logger.debug("Getting frames")
-        # Return the already created frames
-        if self._video['frames_initialized']:
+        # Debug message for the method call itself
+        logger = getLogger(__name__)
+        logger.debug(f'{type(self).__name__}.get_video_frames(pixel_format={pixel_format})')
+
+        # We already have frames, and they are already in the right pixel format
+        if self._video['frames_initialized'] and ((pixel_format is None) or (pixel_format == self.pixel_format)):
             return self._video['frames']
 
+        # We have frames, but they are not in the right pixel format
+        if self._video['frames_initialized'] and pixel_format == 'rgba' and self.pixel_format == 'rgb24':
+            logger.debug(f'Converting {len(self._video['frames'])} video frames to {pixel_format}')
+            # Create the new frame data
+            new_frames = []
+            for frame in self._video['frames']:
+                new_frame = []
+                flattened_frame = frame.flatten()
+                for i in range(0, len(flattened_frame), 3):
+                    pixel = (flattened_frame[i:i+3][0],flattened_frame[i:i+3][1],flattened_frame[i:i+3][2],1)
+                    new_frame.append(pixel)
+                new_frames.append(numpy.array(new_frame).reshape(self.height, self.width, 4).astype('uint8'))
+
+            return new_frames
+
         # No frames yet exist, default to using the video frames we have
-        video_frames = self.get_video_frames_from_file()
+        video_frames = self.get_video_frames_from_file(pixel_format)
 
         # Determine how many frames we need
         frames_needed = self.end_frame - self.start_frame
@@ -1552,18 +1570,22 @@ class ClipBase:
         # Return the frames
         return self._video['frames']
 
-    def get_video_frames_from_file(self):
+    def get_video_frames_from_file(self, pixel_format=None):
         """
         Get the video frames
         :return: List of frames
         """
         logger = getLogger(__name__)
 
+        # Set the pixel format to either the input parameter or the class attribute
+        pixel_format = pixel_format if pixel_format else self.pixel_format
+        pixel_format_info = PIXEL_FORMATS[pixel_format]
+
         # Call ffmpeg and pipe it's output
         command = [FFMPEG_BINARY,
                    '-i', self.file_path,                        # File we will load video frames from
                    '-f', 'image2pipe',                          # Format is 'image2pipe'
-                   '-pix_fmt', self.pixel_format,               # Pixel format we will use internally
+                   '-pix_fmt', pixel_format,                    # Pixel format we will use internally
                    '-vcodec', 'rawvideo',                       # Set video codec to 'rawvideo'
                    '-']                                         # Pipe the output
 
@@ -1572,13 +1594,13 @@ class ClipBase:
         completed_process = subprocess.run(command, capture_output=True)
 
         # Get all frames
-        frame_length = self._video['width'] * self._video['height'] * 3
+        frame_length = self._video['width'] * self._video['height'] * pixel_format_info['nb_components']
         video_frames = []
         for i in range(0, len(completed_process.stdout), frame_length):
             frame = completed_process.stdout[i:i + frame_length]
-            frame = np.fromstring(frame, dtype='uint8').reshape((self._video['height'],
-                                                                    self._video['width'],
-                                                                    3))
+            frame = (np.fromstring(frame, dtype='uint8')
+                     .reshape(self._video['height'], self._video['width'], pixel_format_info['nb_components']))
+
 
             # Store the frame in our frames list
             video_frames.append(frame)
@@ -1833,6 +1855,33 @@ class ClipBase:
         # Set self._audio['frames'] to `value`
         self._audio['frames'] = value
 
+    def set_pixel_format(self, pixel_format):
+        """
+        Sets the pixel format for the video frames.
+        If necessary, this will cause the video frames to be converted
+
+        :param pixel_format: Pixel format string
+        """
+        # Debug logging of the method call
+        logger = getLogger(__name__)
+        logger.debug(f'{type(self).__name__}.set_pixel_format(pixel_format={pixel_format})')
+
+        # Make sure this is a pixel format we know how to convert
+        if pixel_format not in FILMPY_SUPPORTED_PIXEL_FORMATS:
+            logger.warning(f"'{pixel_format}' is not a supported pixel format")
+            return self
+
+        # Is the clip already in the format in the user requested
+        if pixel_format == self.pixel_format:
+            logger.warning(f"Clip is already in '{pixel_format}'. Nothing to do.")
+            return self
+
+        # Update the clip as needed
+        self.set_video_frames(self.get_video_frames(pixel_format))
+        self.pixel_format = pixel_format
+
+        return self
+
     def set_video_frames(self, value):
         """
         Set the new clip frames
@@ -1840,8 +1889,14 @@ class ClipBase:
         if not isinstance(value, list):
             raise ValueError(f"{type(self).__name__}.clip_frames must be a list of numpy.array objects")
 
+        # The video frames have now been initialized
         self._video['frames_initialized'] = True
+
+        # Set the video frames to the new list of frames
         self._video['frames'] = value
+
+        # Enables method chaining
+        return self
 
     def trim(self, exclude_before=None, exclude_after=None):
         """
