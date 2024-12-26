@@ -173,9 +173,6 @@ class ClipBase:
                     key, val = line.split('=')
                     self._environment[key] = val
 
-
-
-
         # Warn the user they sent an argument we are not expecting
         for kw_arg, kw_value in kwargs.items():
             logger.warning(f'{type(self).__name__}({kw_arg}={kw_value} ...) is an unknown argument')
@@ -331,9 +328,6 @@ class ClipBase:
 
         self._audio['sample_rate'] = value
 
-    ######################################
-    # Property Methods - Clip Attributes #
-    ######################################
     @property
     def audio_end_index(self) -> int:
         """
@@ -347,6 +341,49 @@ class ClipBase:
         Audio data index corresponding to the end_time of the clip
         """
         return int(self.audio_sample_rate * self.start_time)
+
+    ###########################
+    # Property Methods - Clip #
+    ###########################
+    @property
+    def ffmpeg_binary(self):
+        """
+        Path to the ffmpeg binary to use
+        """
+        if 'FFMPEG_BINARY' in self._environment:
+            return self._environment['FFMPEG_BINARY']
+
+        return FFMPEG_BINARY
+
+    @property
+    def ffprobe_binary(self):
+        """
+        Path to the ffprobe binary to use
+        """
+        if 'FFPROBE_BINARY' in self._environment:
+            return self._environment['FFPROBE_BINARY']
+
+        return FFPROBE_BINARY
+
+    @property
+    def ffplay_binary(self):
+        """
+        Path to the ffprobe binary to use
+        """
+        if 'FFPLAY_BINARY' in self._environment:
+            return self._environment['FFPLAY_BINARY']
+
+        return FFPLAY_BINARY
+
+    @property
+    def default_frame_rate(self):
+        """
+        Default Frame Rate value for clips
+        """
+        if 'DEFAULT_FRAME_RATE' in self._environment:
+            return self._environment['DEFAULT_FRAME_RATE']
+
+        return DEFAULT_FRAME_RATE
 
     @property
     def behavior(self) -> int:
@@ -801,7 +838,7 @@ class ClipBase:
         logger = getLogger(__name__)
         logger.debug(f'{type(self).__name__}._read_audio(file_path=\'{file_path}\', audio_channels={audio_channels}, '
                      f'audio_sample_rate={audio_sample_rate}, ffmpeg_log_level=\'{ffmpeg_log_level}\')')
-        ffmpeg_command = [FFMPEG_BINARY,
+        ffmpeg_command = [self.ffmpeg_binary,
                           '-i'        , file_path,
                           '-vn'       ,
                           '-loglevel' , ffmpeg_log_level,
@@ -838,7 +875,7 @@ class ClipBase:
         audio_file_format = 's8' if self.audio_channels == 1 else 's%dle' % (8 * self.audio_channels)
 
         ffmpeg_command = [
-            FFMPEG_BINARY, '-y',
+            self.ffmpeg_binary, '-y',
             '-loglevel', ffmpeg_log_level,                          # Set ffmpeg's log level accordingly
             "-f", audio_file_format,
             "-acodec", audio_codec,
@@ -1582,7 +1619,7 @@ class ClipBase:
         pixel_format_info = PIXEL_FORMATS[pixel_format]
 
         # Call ffmpeg and pipe it's output
-        command = [FFMPEG_BINARY,
+        command = [self.ffmpeg_binary,
                    '-i', self.file_path,                        # File we will load video frames from
                    '-f', 'image2pipe',                          # Format is 'image2pipe'
                    '-pix_fmt', pixel_format,                    # Pixel format we will use internally
@@ -1971,7 +2008,7 @@ class ClipBase:
 
         frame = self.get_video_frame(frame_index=frame_index, frame_time=frame_time)
 
-        command = [FFMPEG_BINARY,
+        command = [self.ffmpeg_binary,
                    "-y",
                    "-loglevel", "error",                # Only notify us of errors
                    "-s", self.resolution,
@@ -2041,7 +2078,7 @@ class ClipBase:
                 audio_extension = extension
 
         # Write the video to the file
-        command = [FFMPEG_BINARY,
+        command = [self.ffmpeg_binary,
                    '-y',                                     # Overwrite output file if it exists
                    '-loglevel', ffmpeg_log_level,            # Set ffmpeg's log level accordingly
                    '-f', 'rawvideo',                         # Raw video format
