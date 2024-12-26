@@ -469,7 +469,28 @@ PIXEL_FORMATS = {
                   'paletted': False,
                   'hardware_accelerated': False,
                   'nb_components': 3,
-                  'bits_per_pixel': 12}
+                  'bits_per_pixel': 12},
+    'ya8': {'bitstream': False,
+                 'input': True,
+                 'output': True,
+                 'paletted': False,
+                 'hardware_accelerated': False,
+                 'nb_components': 2,
+                 'bits_per_pixel': 16},
+    'bgr48be': {'bitstream': False,
+            'input': True,
+            'output': True,
+            'paletted': False,
+            'hardware_accelerated': False,
+            'nb_components': 3,
+            'bits_per_pixel': 48},
+    'bgr48le': {'bitstream': False,
+                'input': True,
+                'output': True,
+                'paletted': False,
+                'hardware_accelerated': False,
+                'nb_components': 3,
+                'bits_per_pixel': 48},
 }
 
 
@@ -483,9 +504,6 @@ I.... = Supported Input  format for conversion
 ....B = Bitstream format
 FLAGS NAME            NB_COMPONENTS BITS_PER_PIXEL
 -----
-IO... ya8                    2            16
-IO... bgr48be                3            48
-IO... bgr48le                3            48
 IO... yuv420p9be             3            13
 IO... yuv420p9le             3            13
 IO... yuv420p10be            3            15
@@ -622,6 +640,9 @@ IO... nv42                   3            24
 ..... y210be                 3            20
 I.... y210le                 3            20
 '''
+
+# Internal formats that FilmPy supports
+FILMPY_SUPPORTED_PIXEL_FORMATS = ('rgba','rgb24')
 
 class Sizes(Enum):
     """
