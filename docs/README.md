@@ -37,6 +37,7 @@ Some of the benefits of this package over similiar python packages are
 | ClipBase.fade_out()                                  | Adjust the audio volume of a clips and clip sequences |
 | ClipBase.audio_normalize()                           |  ClipBase.pixel_format()                              |
 | ClipBase.slide_up() [dynamic resize?]                | ClipBase.slide_down() [dynamic resize?]               |
+| ClipBase.blink(color=XXXX, frame=XXXXX)              | |
 
 ### Thinking About For Later
 * Different Storage Engines (datatable?)
