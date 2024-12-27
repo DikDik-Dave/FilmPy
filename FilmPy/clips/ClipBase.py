@@ -1410,6 +1410,38 @@ class ClipBase:
         """
         pass
 
+    def freeze(self,
+               time:float,
+               duration:float
+               ):
+        """
+        Freeze the clip at `time` for `duration` seconds
+        """
+        # Debug logging for the call itself
+        logger = getLogger(__name__)
+        logger.debug(f"{type(self).__name__}.freeze(time={time},duration={duration})")
+
+        # Get the video frames
+        video_frames = self.get_video_frames()
+        logger.debug(f"{len(video_frames)} frames detected")
+
+        # Determine where to start the freeze, and for how long
+        duration_frames = int(duration * self.fps)
+        freeze_index = int(time * self.fps)
+        logger.debug(f"Freezing frame {freeze_index} for {duration_frames} frames (fps={self.fps})")
+
+        freeze_frames = [video_frames[freeze_index]] * duration_frames
+
+        # Build the new list of video frames
+        new_video_frames = video_frames[0:freeze_index] + freeze_frames + video_frames[freeze_index:len(video_frames)]
+        logger.debug(f"{len(new_video_frames)} frames, after freeze applied")
+
+        # Replace the video frames with the newly altered frames
+        self.set_video_frames(new_video_frames)
+
+        # Enable method chaining
+        return self
+
     def gamma_correction(self,
                          gamma:float):
         """
@@ -1932,6 +1964,9 @@ class ClipBase:
         # Set the video frames to the new list of frames
         self._video['frames'] = value
 
+        # Update the number of frames
+        self.number_frames = len(value)
+        
         # Enables method chaining
         return self
 
