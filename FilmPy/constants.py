@@ -13,7 +13,8 @@ FFMPEG_BINARY = "ffmpeg.exe"
 FFPROBE_BINARY = 'ffprobe.exe'
 FFPLAY_BINARY = 'ffplay.exe'
 
-DEFAULT_FRAME_RATE = 30
+DEFAULT_FRAME_RATE  = 30
+DEFAULT_SAMPLE_RATE = 44100
 
 LOG_FILENAME = f"{__name__.split('.')[0]}.log"              # Default log file name to use
 STANDARD_FRAME_RATES = (24,25,30,50,60)                     # Standard frame rates
