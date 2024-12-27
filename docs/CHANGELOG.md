@@ -22,6 +22,7 @@
   - Added `ClipBase.__init__()` - Initialize the ClipBase object itself
   - Added `ClipBase._read_audio()` - Reads audio from a file.
   - Added `ClipBase.blink()` - Blacks out frames of the video to create a blinking effect
+  - Added `ClipBase.freeze(time, duration)` - Freeze the clip at `time` for `duration` seconds
   - Added `ClipBase.play_audio()` - Plays the audio frames for this clip, via ffplay
   - Added `ClipBase.set_pixel_format()` - Changes the internal pixel format used for the video frames
 - Added `library/Clip.py` - A clip with audio and/or video
