@@ -31,10 +31,11 @@ Some of the benefits of this package over similiar python packages are
 ### Expected in version 25.1
 | Features                                             | Features                                              |
 | :--------------------------------------------------- | :-----------------------------------------------------|
+| ClipBase.fade_in()                                   | ClipBase.fade_out()                                   |
 | SlideUp(Transition)                                  | SlideDown(Transition)                                 |
 | Create a linear fade out to a given color on a clip  | Add static image overlays to a video clip             |
-| ClipBase.audio_fade_out()                            | Clip.fade_in()                                        |
-| ClipBase.fade_out()                                  | Adjust the audio volume of a clips and clip sequences |
+| ClipBase.audio_fade_out()                            |                                         |
+|                                   | Adjust the audio volume of a clips and clip sequences |
 | ClipBase.audio_normalize()                           |  ClipBase.pixel_format()                              |
 | ClipBase.slide_up() [dynamic resize?]                | ClipBase.slide_down() [dynamic resize?]               |
 | ClipBase.blink(color=XXXX, frame=XXXXX)              | |
