@@ -302,6 +302,20 @@ class ClipBase:
         self._audio['channels'] = int(value)
 
     @property
+    def audio_number_frames(self):
+        """
+        Number of audio frames in this clip
+        """
+        return self._audio['number_frames']
+
+    @audio_number_frames.setter
+    def audio_number_frames(self, value):
+        """
+        Set the number of audio frames in this clip
+        """
+        self._audio['number_frames'] = int(value)
+
+    @property
     def audio_profile(self):
         return self._audio['profile']
 
@@ -311,7 +325,16 @@ class ClipBase:
         Audio Sample Rate for the audio
         :return:
         """
+
+        # If we already have audio sample rate, just return it
+        if 'sample_rate' in self._audio:
+            return self._audio['sample_rate']
+
+        # Audio Sample Rate was not set, fall back to the default sample rate
+        self.audio_sample_rate = DEFAULT_SAMPLE_RATE
+
         return self._audio['sample_rate']
+
 
     @audio_sample_rate.setter
     def audio_sample_rate(self, value):
@@ -472,7 +495,7 @@ class ClipBase:
 
         :return: True if the clip has audio data, False otherwise
         """
-        return bool(self._audio)
+        return bool(self.audio_number_frames and (self.audio_number_frames > 0))
 
     @property
     def has_video(self):
@@ -990,6 +1013,19 @@ class ClipBase:
         # Allow for method chaining
         return self
 
+    def audio_initialize(self, duration, audio_channels):
+        """
+        Initialize audio
+        """
+        logger = getLogger(__name__)
+        logger.debug(f'{type(self).__name__}.audio_initialize(duration={duration},audio_channels={audio_channels})')
+
+        # Calculate the number of frames we need
+        number_frames = int(self.audio_sample_rate * duration)
+
+        self.set_audio_frames(np.tile(np.zeros(audio_channels), number_frames).reshape(number_frames, audio_channels))
+
+        return self
 
     def audio_peak_normalize(self):
         """
@@ -1915,7 +1951,9 @@ class ClipBase:
     def set_audio_frames(self, value):
         """
         Set the audio data for this clip
-        :return:
+
+        :param value: numpy array of audio frames
+        :return self: Enables method chaining
         """
         # Ensure we have an n dimensional array
         if not isinstance(value, np.ndarray):
@@ -1923,6 +1961,12 @@ class ClipBase:
 
         # Set self._audio['frames'] to `value`
         self._audio['frames'] = value
+
+        # Set the number of audio frames we have
+        self.audio_number_frames = value.shape[0]
+
+        # Enable method chaining
+        return self
 
     def set_pixel_format(self, pixel_format):
         """
@@ -1966,6 +2010,10 @@ class ClipBase:
 
         # Update the number of frames
         self.number_frames = len(value)
+
+        # Reset the start and end times for the clip
+        self.start_time = 0
+        self.end_time = float(self.number_frames / self.fps)
         
         # Enables method chaining
         return self
