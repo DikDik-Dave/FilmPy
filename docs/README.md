@@ -29,16 +29,19 @@ Some of the benefits of this package over similiar python packages are
 | Play the video associated with the clip              |  |
 
 ### Expected in version 25.1
-| Features                                             | Features                                              |
-| :--------------------------------------------------- | :-----------------------------------------------------|
-| ClipBase.fade_in()                                   | ClipBase.fade_out()                                   |
-| SlideUp(Transition)                                  | SlideDown(Transition)                                 |
-| Create a linear fade out to a given color on a clip  | Add static image overlays to a video clip             |
-| ClipBase.audio_fade_out()                            |                                         |
-|                                                      | Adjust the audio volume of a clips and clip sequences           |
-| ClipBase.audio_normalize()                           |  ClipBase.pixel_format()                               |
-| ClipBase.slide_up() [dynamic resize?]                | ClipBase.slide_down() [dynamic resize?]                 |
-| ClipBase.blink(color=XXXX, frame=XXXXX)              | ClipBase.audio_fade_in(,algorithm=Fade.LINEAR) parameter|
+| Features                                             | Features                                                 |
+| :--------------------------------------------------- | :--------------------------------------------------------|
+| ClipBase.blink()                                     | Adjust the audio volume of a clips and clip sequences    |
+| ClipBase.fade_in()                                   | ClipBase.fade_out()                                      |
+| SlideUp(Transition)                                  | SlideDown(Transition)                                    |
+| Create a linear fade out to a given color on a clip  | Add static image overlays to a video clip                |
+| ClipBase.audio_fade_out()                            | ClipBase.bilevel()                                       |
+| ClipBase.audio_normalize()                           |  ClipBase.pixel_format()                                 |
+| ClipBase.slide_up() [dynamic resize?]                | ClipBase.slide_down() [dynamic resize?]                  |
+| ClipBase.blink(color=XXXX, frame=XXXXX)              | ClipBase.audio_fade_in(,algorithm=Fade.LINEAR) parameter |
+| ClipBase.dynamic_resize()                            |                                                          |
+
+
 
 ### Thinking About For Later
 * Different Storage Engines (datatable?)
@@ -47,6 +50,9 @@ Some of the benefits of this package over similiar python packages are
 * Subtitle Support
 * pytest (or other) testing framework integration
 * librosa?
+* Faster approach to pixel format conversion
+* Get all rgb colors in an image.
+* 
 
 ## How To Use This Library
 There are two primary interfaces to use FilmPy, importing the package or calling it via command line interface. 
