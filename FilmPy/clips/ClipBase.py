@@ -933,22 +933,22 @@ class ClipBase:
         """
         Increase or decrease each color channel and the images luminosity
 
-        :param red_addend: Addend for the red channel
-        :param green_addend: Addend for the green channel
-        :param blue_addend: Addend for blue channel
+        :param red_addend: Addend for the red channel, defaults to 0 (no change)
+        :param green_addend: Addend for the green channel, defaults to 0 (no change)
+        :param blue_addend: Addend for blue channel, defaults to 0 (no change)
         :param luminance: Addend for luminance
         :return:
         """
         logger = getLogger(__name__)
+        logger.debug(f"{type(self).__name__}.add_colors(red_addend={red_addend}, green_added={green_addend}, "
+                     f"blue_added={blue_addend}, luminance={luminance})")
 
         # If all the multipliers are 1, we have no work to do
         if red_addend == green_addend == blue_addend == luminance == 0:
-            logger.warning(f"All multipliers, set to 1. No work needed.")
+            logger.warning(f"All addends are 0. No work needed.")
             return self
 
         # Add colors in each frame
-        logger.debug(f"Color Addends - Red x {red_addend}, Green x {green_addend}, "
-                     f"Blue x {blue_addend}, Luminance={luminance}")
         altered_frames = []
         luminance_array = np.array([luminance, luminance, luminance])
         red_addend_array = np.array([red_addend, green_addend, blue_addend])
