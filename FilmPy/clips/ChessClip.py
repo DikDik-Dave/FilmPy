@@ -108,6 +108,11 @@ class ChessClip(ClipBase):
 
 
         ###########################
+        ## Make the audio frames ##
+        ###########################
+        self.audio_initialize(self.duration, 2)
+
+        ###########################
         ## Make the video frames ##
         ###########################
         # Start a list of frames for this clip
@@ -121,8 +126,13 @@ class ChessClip(ClipBase):
             frames.append(move_frame)
 
         # Iterate through the moves of the game
-        for move in game.movetext:
-            board, move_frame = self._create_move_frame(game, board, move)
+        move = 0
+        for move_text in game.movetext:
+            move += 1
+
+            move_time = float(move * self.fps * chess_move_duration / self.fps)
+            self.add_sound(move_time, file_path='.\\static\\audio\\chess\\move-self.mp3')
+            board, move_frame = self._create_move_frame(game, board, move_text)
 
             # Create all the necessary frames for this move
             for _ in range(self.fps * chess_move_duration):
@@ -130,7 +140,3 @@ class ChessClip(ClipBase):
 
         self.set_video_frames(frames)
 
-        ###########################
-        ## Make the audio frames ##
-        ###########################
-        self.audio_initialize(self.duration, 2)
