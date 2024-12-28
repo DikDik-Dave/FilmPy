@@ -9,6 +9,7 @@
 - Added `library/ClipBase.py` - Base class for all clip objects
 - Added `library/ClipBase.py` audio properties
   - Added `ClipBase.audio_channels` property - How many audio channels 
+  - Added `ClipBase.audio_profile` - getter
   - Added `ClipBase.audio_sample_rate` property - Sample Rate of the audio
   - Added `Clip.audio_start_index` getter - Frame Index corresponding to `ClipBase.start_time`
   - Added `ClipBase.audio_end_index` getter - Frame index corresponding to `ClipBase.end_time`
@@ -23,10 +24,13 @@
   - Added `ClipBase._read_audio()` - Reads audio from a file.
   - Added `ClipBase.audio_initialize(duration,audio_channels)` - Initialize audio for the clip (replaces existing audio)
   - Added `ClipBase.add_colors(red_added,green_added,blue_added,luminance)` - Perform color addition on the clip
+  - Added `ClipBase.add_sound(sound_time, sound_frames=None, file_path=None)` - Adds the given audio frames at the specific time requested
   - Added `ClipBase.blink()` - Blacks out frames of the video to create a blinking effect
   - Added `ClipBase.freeze(time, duration)` - Freeze the clip at `time` for `duration` seconds
   - Added `ClipBase.play_audio()` - Plays the audio frames for this clip, via ffplay
   - Added `ClipBase.set_pixel_format()` - Changes the internal pixel format used for the video frames
+  - Added `ClipBase.write_audio(file_path)` - Creates an audio file from this clip's audio
+  - Added `ClipBase.write_video(file_path)` - Creates a video file from this clip
 - Added `library/Clip.py` - A clip with audio and/or video
 - Added `library/Clip.py` - methods
   - Added `Clip._set_file_information()` - Sets the file information as retrieved from ffmpeg,etc
