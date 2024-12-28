@@ -912,10 +912,15 @@ class ClipBase:
 
         # Write all the data (via ffmpeg) to the temp file
         process = subprocess.Popen(ffmpeg_command, stdin=subprocess.PIPE, bufsize=10 ** 8)
+        logger.debug(f'Writing {audio_data.shape[0]} audio frames, {audio_data.shape[1]} channels. '
+                     f'({type(audio_data).__name__}, {audio_data.dtype})')
+
+        # Write the audio data to stdin
         process.stdin.write(audio_data.tobytes())
         process.stdin.close()
         process.wait()
 
+        logger.info(f"Audio written to '{file_path}'")
 
     ##################
     # Public Methods #
@@ -1023,7 +1028,13 @@ class ClipBase:
         # Calculate the number of frames we need
         number_frames = int(self.audio_sample_rate * duration)
 
-        self.set_audio_frames(np.tile(np.zeros(audio_channels), number_frames).reshape(number_frames, audio_channels))
+        # Set the number of audio channels we have
+        self.audio_channels = audio_channels
+
+        # Set the audio frames
+        audio_frames = (np.tile(np.zeros(audio_channels), number_frames)
+                        .reshape(number_frames, audio_channels).astype('int16'))
+        self.set_audio_frames(audio_frames)
 
         return self
 
@@ -1511,6 +1522,7 @@ class ClipBase:
         logger = getLogger(__name__)
         logger.debug(f"{type(self).__name__}.get_audio_frames()")
 
+        print(self._audio['frames_initialized'])
         # We have already initialized the frames, so we can just return them
         if self._audio['frames_initialized']:
             return self._audio['frames']
@@ -1958,6 +1970,9 @@ class ClipBase:
         # Ensure we have an n dimensional array
         if not isinstance(value, np.ndarray):
             raise ValueError(f"{type(self).__name__}.audio_data must be an numpy array")
+
+        # Set frames initialized to True
+        self._audio['frames_initialized'] = True
 
         # Set self._audio['frames'] to `value`
         self._audio['frames'] = value
