@@ -1,8 +1,8 @@
+import logging
 import subprocess
 import os
 from logging import getLogger
 from subprocess import DEVNULL, PIPE
-from turtledemo.penrose import start
 
 import numpy
 from PIL import Image
@@ -912,15 +912,13 @@ class ClipBase:
 
         # Write all the data (via ffmpeg) to the temp file
         process = subprocess.Popen(ffmpeg_command, stdin=subprocess.PIPE, bufsize=10 ** 8)
-        logger.debug(f'Writing {audio_data.shape[0]} audio frames, {audio_data.shape[1]} channels. '
-                     f'({type(audio_data).__name__}, {audio_data.dtype})')
+        logger.debug( f'Writing {audio_data.shape[0]} audio frames, {audio_data.shape[1]} channels. '
+                      f'({type(audio_data).__name__}, {audio_data.dtype})')
 
         # Write the audio data to stdin
         process.stdin.write(audio_data.tobytes())
         process.stdin.close()
         process.wait()
-
-        logger.info(f"Audio written to '{file_path}'")
 
     ##################
     # Public Methods #
@@ -961,7 +959,34 @@ class ClipBase:
         # Return this object to enable method chaining
         return self
 
-    # TODO: add audio_fade_in(,algorithm=Fade.LINEAR) parameter
+    def add_sound(self,
+                        sound_time,
+                        sound_audio_frames=None,
+                        file_path=None):
+        """
+        Add
+        :param sound_time: Sound time
+        :param file_path: Path to the audio file
+        """
+        if file_path:
+            sound_audio_frames = self._read_audio(file_path,
+                                                  audio_channels=self.audio_channels,
+                                                  audio_sample_rate=self.audio_sample_rate)
+
+        # Get the existing audio frames
+        audio_frames = self.get_audio_frames()
+
+        # Insert the audio at the specified time (frame index)
+        audio_frame_index = int(sound_time * self.audio_sample_rate)
+        audio_frames[audio_frame_index:audio_frame_index+sound_audio_frames.shape[0]] = sound_audio_frames
+
+        # Replace the audio frames with the newly generated audio frames
+        self.set_audio_frames(audio_frames)
+
+        # Return this object to enable method chaining
+        return self
+
+
     def audio_fade_in(self, duration):
         """
         Apply a fade in to the audio track
@@ -1520,9 +1545,9 @@ class ClipBase:
         :return:
         """
         logger = getLogger(__name__)
-        logger.debug(f"{type(self).__name__}.get_audio_frames()")
+        logger.debug(f"{type(self).__name__}.get_audio_frames(), "
+                     f"frames_initialized={self._audio['frames_initialized']}.")
 
-        print(self._audio['frames_initialized'])
         # We have already initialized the frames, so we can just return them
         if self._audio['frames_initialized']:
             return self._audio['frames']
