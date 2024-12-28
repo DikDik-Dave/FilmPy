@@ -19,9 +19,10 @@
   - Added `ClipBase.ffprobe_binary` - Path to the ffprobe binary to use
   - Added `ClipBase.default_frame_rate` - Default frame rate to use when creating an uninitialized clip
 - Added `library/ClipBase.py` methods
-  - Added `ClipBase.__init__()` - Initialize the ClipBase object itself
-  - Added `ClipBase.audio_initialize(duration,audio_channels)` - Initialize audio for the clip (replaces existing audio) 
+  - Added `ClipBase.__init__()` - Initialize the ClipBase object itself 
   - Added `ClipBase._read_audio()` - Reads audio from a file.
+  - Added `ClipBase.audio_initialize(duration,audio_channels)` - Initialize audio for the clip (replaces existing audio)
+  - Added `ClipBase.add_colors(red_added,green_added,blue_added,luminance)` - Perform color addition on the clip
   - Added `ClipBase.blink()` - Blacks out frames of the video to create a blinking effect
   - Added `ClipBase.freeze(time, duration)` - Freeze the clip at `time` for `duration` seconds
   - Added `ClipBase.play_audio()` - Plays the audio frames for this clip, via ffplay
