@@ -15,7 +15,6 @@ class ChessClip(ClipBase):
     """
     Create a chess clip from a pgn file
     """
-
     def _create_move_frame(self, game, board, move):
         """
         Create a Frame that corresponding to the move
@@ -75,6 +74,37 @@ class ChessClip(ClipBase):
         # Return the frame we generated
         return board, numpy.array(pil_image)
 
+    @staticmethod
+    def _get_move_sound_file(move_text):
+        """
+        Get move sound file
+        """
+        base_path = './assets/audio/chess/'
+        if not move_text:
+            return None
+
+        move_number, san_move, move_dict = str(move_text).split(' ', 2)
+
+        # This move is a capture
+        if san_move.find('x') > 0:
+            return base_path + 'capture.mp3'
+
+        # This move is a capture
+        if san_move.find('O') > 0:
+            return base_path + 'castle.mp3'
+
+        # 'Opponent' move
+        if move_number.find('...') > 0:
+            return base_path + 'move-opponent.mp3'
+
+        # A player resigned
+        if move_dict.find('resigns.') > 0:
+            return base_path + 'game-end.mp3'
+
+        # 'Self' move
+        return base_path + 'move-self.mp3'
+
+
     def __init__(self,
                  chess_move_duration=3,
                  file_path=None,
@@ -131,7 +161,8 @@ class ChessClip(ClipBase):
             move += 1
 
             move_time = float(move * self.fps * chess_move_duration / self.fps)
-            self.add_sound(move_time, file_path='.\\static\\audio\\chess\\move-self.mp3')
+            move_sound_file = self._get_move_sound_file(move_text)
+            self.add_sound(move_time, file_path=move_sound_file)
             board, move_frame = self._create_move_frame(game, board, move_text)
 
             # Create all the necessary frames for this move
