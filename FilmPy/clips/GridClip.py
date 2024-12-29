@@ -1,4 +1,3 @@
-from FilmPy.clips import CompositeClip
 from FilmPy.clips.ClipBase import ClipBase
 from FilmPy.constants import PIXEL_FORMATS
 import numpy
