@@ -1505,13 +1505,69 @@ class ClipBase:
         freeze_frames = [video_frames[freeze_index]] * duration_frames
 
         # Build the new list of video frames
-        new_video_frames = video_frames[0:freeze_index] + freeze_frames + video_frames[freeze_index:len(video_frames)]
+        new_video_frames = (video_frames[0:freeze_index]
+                            + freeze_frames
+                            + video_frames[freeze_index+duration_frames:len(video_frames)])
         logger.debug(f"{len(new_video_frames)} frames, after freeze applied")
 
         # Replace the video frames with the newly altered frames
         self.set_video_frames(new_video_frames)
 
         # Enable method chaining
+        return self
+
+    def freeze_region(self, time:float, duration:float, inside=None,outside=None):
+        """
+        Freeze a region of the clip at `time` for `duration`.
+
+        :param time: Time, in seconds, to start freezing the region
+        :param duration, Duration, in seconds, that the region should be frozen for
+        :param inside: (x1,y1,x2,y2) boundaries for the region to be frozen
+        :param outside (x1,y1,x2,y2) boundaries for the region that will not be frozen
+
+        :return self: Enables method chaining
+        """
+        logger = getLogger(__name__)
+        logger.debug(f'{type(self).__name__}.freeze_region(time={time}, duration={duration}, '
+                     f'inside={inside}, outside={outside})')
+
+        if (not inside) and (not outside):
+            logger.warning(f'No region provided. Nothing to do.')
+            return self
+
+        if inside and outside:
+            logger.warning(f'inside and outside provided. Only inside={inside} will be used')
+
+        # Get the video frames
+        video_frames = self.get_video_frames()
+        logger.debug(f"{len(video_frames)} frames detected")
+
+        # Determine where to start the freeze, and for how long
+        duration_frames = int(duration * self.fps)
+        freeze_index = int(time * self.fps)
+
+        frozen_frame = video_frames[freeze_index]
+        freeze_frames = []
+        for i in range(duration_frames):
+            frame = video_frames[freeze_index + i]
+            new_frame = None
+            if inside:
+                new_frame = frame
+                new_frame[inside[0]:inside[2], inside[1]:inside[3]] = frozen_frame[inside[0]:inside[2], inside[1]:inside[3]]
+            elif outside:
+                new_frame = frozen_frame
+                new_frame[outside[0]:outside[2], outside[1]:outside[3]] = frame[outside[0]:outside[2], outside[1]:outside[3]]
+
+            freeze_frames.append(new_frame)
+
+        # Build the new list of video frames
+        new_video_frames = video_frames[0:freeze_index] + freeze_frames + video_frames[freeze_index:len(video_frames)]
+        logger.debug(f"{len(new_video_frames)} frames, after freeze applied")
+
+        # Replace the video frames with the newly altered frames
+        self.set_video_frames(new_video_frames)
+
+        # Enables method chaining
         return self
 
     def gamma_correction(self,
