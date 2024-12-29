@@ -1460,11 +1460,50 @@ class ClipBase:
         # Return this object to enable method chaining
         return self
 
+    def even_dimensions(self):
+        """
+        Trims the height and width of the clip as needed so that they are both even values
+        Affects: Video
+
+        :return self: Enables method chaining
+        """
+        # Debug log the method call
+        logger = getLogger(__name__)
+        logger.debug(f"{type(self).__name__}.even_dimensions()")
+
+        # Check if there is any work to do
+        if (self.size[0] % 2 == 0) and (self.size[1] % 2 == 0):
+            logger.warning(f"The dimensions {self.size} are already even, no work needed.")
+            return self
+
+        # Get the existing frames
+        video_frames = self.get_video_frames()
+
+        # Trim 1 pixel from height and/or width as needed
+        altered_frames = []
+        for frame in video_frames:
+            # The height of the frame is odd
+            if frame.shape[0] % 2 == 1:
+                frame = frame[:-1, :, :]
+
+            # The width of the frame is odd
+            if frame.shape[1] % 2 == 1:
+                frame = frame[:,:-1,:]
+
+            altered_frames.append(frame)
+
+        # Replace the existing frames with the newly generated ones
+        self.set_video_frames(altered_frames)
+
+        # Enable method chaining
+        return self
+
     def fade_in(self,
                 duration,
                 fade_in_color=(0,0,0)):
         """
         Fade in from fade in color to the footage over the duration color
+        Affects: Video
 
         :param duration:
         :param fade_in_color:
@@ -1476,6 +1515,8 @@ class ClipBase:
                  fade_out_color=(0,0,0)):
         """
         Fade out from the footage to the fade out color over the duration
+        Affects: Video
+
         :param duration:
         :param fade_out_color:
         :return:
