@@ -1,11 +1,9 @@
-import numpy as np
 from logging import getLogger
 from ffmpeg import FFmpeg
 
 import json
-import numpy
 import subprocess
-from FilmPy.constants import FFMPEG_BINARY, FFPROBE_BINARY, PIXEL_FORMATS
+from FilmPy.constants import FFMPEG_BINARY, FFPROBE_BINARY
 from FilmPy.clips.ClipBase import ClipBase
 
 
