@@ -1653,7 +1653,7 @@ class ClipBase:
         if self._video['frames_initialized'] and ((pixel_format is None) or (pixel_format == self.pixel_format)):
             return self._video['frames']
 
-        # We have frames, but they are not in the right pixel format
+        # We have frames, but they are not in the right pixel format and convert to rgba
         if self._video['frames_initialized'] and pixel_format == 'rgba' and self.pixel_format == 'rgb24':
             logger.debug(f'Converting {len(self._video['frames'])} video frames to {pixel_format}')
             # Create the new frame data
@@ -1663,6 +1663,21 @@ class ClipBase:
                 flattened_frame = frame.flatten()
                 for i in range(0, len(flattened_frame), 3):
                     pixel = (flattened_frame[i:i+3][0],flattened_frame[i:i+3][1],flattened_frame[i:i+3][2],1)
+                    new_frame.append(pixel)
+                new_frames.append(numpy.array(new_frame).reshape(self.height, self.width, 4).astype('uint8'))
+
+            return new_frames
+
+        # We have rgba frames but need rgb24 frames
+        if self._video['frames_initialized'] and pixel_format == 'rgb24' and self.pixel_format == 'rgba':
+            logger.debug(f'Converting {len(self._video['frames'])} video frames to {pixel_format}')
+            # Create the new frame data
+            new_frames = []
+            for frame in self._video['frames']:
+                new_frame = []
+                flattened_frame = frame.flatten()
+                for i in range(0, len(flattened_frame), 4):
+                    pixel = (flattened_frame[i:i+4][0],flattened_frame[i:i+4][1],flattened_frame[i:i+4][2])
                     new_frame.append(pixel)
                 new_frames.append(numpy.array(new_frame).reshape(self.height, self.width, 4).astype('uint8'))
 
