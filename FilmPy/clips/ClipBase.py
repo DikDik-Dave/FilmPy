@@ -2216,6 +2216,31 @@ class ClipBase:
         # Enables method chaining
         return self
 
+    def time_symmetrize(self):
+        """
+        Reverse the video frames for the clip
+
+        Affects: Video
+
+        :return self: (to enable method chaining)
+        """
+        logger = getLogger(__name__)
+        logger.debug(f'{type(self).__name__}.time_symmetrize()')
+
+        # Get the video frames
+        video_frames = self.get_video_frames()
+        logger.debug(f'{len(video_frames)} initial video frames')
+
+        # Replace the existing video frames with the footage and followed by the footage reversed
+        new_video_frames = video_frames + video_frames[::-1]
+
+        logger.debug(f'{len(new_video_frames)} video frames post effect')
+        self.set_video_frames(new_video_frames)
+
+        # Return this object to enable method chaining
+        return self
+
+
     def trim(self, exclude_before=None, exclude_after=None):
         """
         Trim the audio/video to exclude the requested frames
