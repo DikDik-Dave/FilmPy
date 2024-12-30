@@ -5,7 +5,7 @@ from logging import getLogger
 from subprocess import DEVNULL, PIPE
 
 import numpy
-from PIL import Image
+from PIL import Image, ImageFilter
 
 from FilmPy.constants import *
 import numpy as np
@@ -1989,6 +1989,52 @@ class ClipBase:
         self.set_video_frames(altered_frames)
 
         # Return this object to enable method chaining
+        return self
+
+    def painting(self, saturation=1.4, black=0.006):
+        """
+        Transform the video into a sort of painting
+
+        Affects: Video
+        """
+        logger = getLogger(__name__)
+        logger.debug(f'{type(self).__name__}.painting(saturation={saturation},black={black})')
+
+        video_frames = self.get_video_frames()
+        new_frames = []
+        for frame in video_frames:
+            # Convert frame into a PIL Image
+            image = Image.fromarray(frame)
+            image = image.filter(ImageFilter.EDGE_ENHANCE_MORE)
+
+            # Convert the image to grayscale
+            grayscale_image = image.convert("L")
+
+            # Find the image edges
+            edges_image = grayscale_image.filter(ImageFilter.FIND_EDGES)
+
+            # Convert the edges image to a numpy array
+            edges = np.array(edges_image)
+
+            # Create the darkening effect
+            darkening = black * (255 * np.dstack(3 * [edges]))
+
+            # Apply the painting effect
+            painting = saturation * np.array(image) - darkening
+
+            # Clip the pixel values to the valid range of 0-255
+            painting = np.maximum(0, np.minimum(255, painting))
+
+            # Convert the pixel values to unsigned 8-bit integers
+            painting = painting.astype("uint8")
+
+            # Add this frame
+            new_frames.append(painting)
+
+        # Set Video Frames
+        self.set_video_frames(new_frames)
+
+        # Enables method chaining
         return self
 
     def play_audio(self, ffplay_log_level='error'):
