@@ -39,7 +39,9 @@ Some of the benefits of this package over similiar python packages are
 | ClipBase.audio_normalize()                           |  ClipBase.pixel_format()                                 |
 | ClipBase.slide_up() [dynamic resize?]                | ClipBase.slide_down() [dynamic resize?]                  |
 | ClipBase.blink(color=XXXX, frame=XXXXX)              | ClipBase.audio_fade_in(,algorithm=Fade.LINEAR) parameter |
-| ClipBase.dynamic_resize()                            |                                                          |
+| ClipBase.dynamic_resize()                            | ClipBase.trim_audio()                                    |
+| Editor.insert(clip, insert_clip)                     | ClipBase.trim_video() & ClipBase.trim()                  |
+| ClipBase.cut_audio()                                 |                                                          |
 
 
 
