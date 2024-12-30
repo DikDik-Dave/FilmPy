@@ -33,6 +33,8 @@
   - Added `ClipBase.painting(saturation,black)` - Convert the video into a type of painting 
   - Added `ClipBase.play_audio()` - Plays the audio frames for this clip, via ffplay
   - Added `ClipBase.set_pixel_format()` - Changes the internal pixel format used for the video frames
+  - Added `ClipBase.reverse_time()` - Reverses the video frames of the clip
+  - Added `ClipBase.time_symmetrize()` - Concatenates the video frames with the video frames reversed
   - Added `ClipBase.write_audio(file_path)` - Creates an audio file from this clip's audio
   - Added `ClipBase.write_video(file_path)` - Creates a video file from this clip
 - Added `library/Clip.py` - A clip with audio and/or video
