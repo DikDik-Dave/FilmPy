@@ -30,6 +30,7 @@
   - Added `ClipBase.even_dimensions()` - Trims the height and width as needed so the clip's height and width are even
   - Added `ClipBase.freeze(time, duration)` - Freeze the clip at `time` for `duration` seconds
   - Added `ClipBase.freeze_region(time, duration, inside, outside)` -Freeze every inside or outside a region
+  - Added `ClipBase.painting(saturation,black)` - Convert the video into a type of painting 
   - Added `ClipBase.play_audio()` - Plays the audio frames for this clip, via ffplay
   - Added `ClipBase.set_pixel_format()` - Changes the internal pixel format used for the video frames
   - Added `ClipBase.write_audio(file_path)` - Creates an audio file from this clip's audio
