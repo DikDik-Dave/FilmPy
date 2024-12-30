@@ -1525,10 +1525,14 @@ class ClipBase:
 
     def freeze(self,
                time:float,
-               duration:float
+               duration:float,
+               replace_frames=False,
                ):
         """
         Freeze the clip at `time` for `duration` seconds
+        :param time: Point in time, in seconds, that the clip should be frozen at
+        :param duration: Duration, in seconds, that the clip should be frozen for
+        :param replace_frames: Should the frozen frames replace footage or be added to the footage
         """
         # Debug logging for the call itself
         logger = getLogger(__name__)
@@ -1545,10 +1549,12 @@ class ClipBase:
 
         freeze_frames = [video_frames[freeze_index]] * duration_frames
 
+
         # Build the new list of video frames
+        frame_offset = duration_frames if replace_frames else 0
         new_video_frames = (video_frames[0:freeze_index]
                             + freeze_frames
-                            + video_frames[freeze_index+duration_frames:len(video_frames)])
+                            + video_frames[freeze_index+frame_offset:len(video_frames)])
         logger.debug(f"{len(new_video_frames)} frames, after freeze applied")
 
         # Replace the video frames with the newly altered frames
@@ -1557,7 +1563,12 @@ class ClipBase:
         # Enable method chaining
         return self
 
-    def freeze_region(self, time:float, duration:float, inside=None,outside=None):
+    def freeze_region(self,
+                      time:float,
+                      duration:float,
+                      inside:tuple[int]=None,
+                      outside:tuple[int]=None,
+                      replace_frames=False):
         """
         Freeze a region of the clip at `time` for `duration`.
 
@@ -1565,6 +1576,7 @@ class ClipBase:
         :param duration, Duration, in seconds, that the region should be frozen for
         :param inside: (x1,y1,x2,y2) boundaries for the region to be frozen
         :param outside (x1,y1,x2,y2) boundaries for the region that will not be frozen
+        :param replace_frames: Should the frames replace existing frames or be added into the clip
 
         :return self: Enables method chaining
         """
@@ -1602,7 +1614,10 @@ class ClipBase:
             freeze_frames.append(new_frame)
 
         # Build the new list of video frames
-        new_video_frames = video_frames[0:freeze_index] + freeze_frames + video_frames[freeze_index:len(video_frames)]
+        frame_offset = duration_frames if replace_frames else 0
+        new_video_frames = (video_frames[0:freeze_index]
+                            + freeze_frames
+                            + video_frames[freeze_index+frame_offset:len(video_frames)])
         logger.debug(f"{len(new_video_frames)} frames, after freeze applied")
 
         # Replace the video frames with the newly altered frames
@@ -2243,7 +2258,9 @@ class ClipBase:
 
     def trim(self, exclude_before=None, exclude_after=None):
         """
-        Trim the audio/video to exclude the requested frames
+        Trim the clip to exclude the requested frames
+
+        Affects: Audio, Video
 
         :param exclude_before: frames earlier than this time will be excluded from the clip
         :param exclude_after: frames later than this time will be excluded from the clip
