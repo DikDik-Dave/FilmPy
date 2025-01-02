@@ -7,9 +7,8 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'FilmPy'
-copyright = '2024, David Alan Gardener'
+copyright = '2025, David Alan Gardener'
 author = 'David Alan Gardener'
-release = '0.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
