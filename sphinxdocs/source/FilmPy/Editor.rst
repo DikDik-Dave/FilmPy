@@ -1,0 +1,2 @@
+.. autoclass:: FilmPy.Editor
+  :members:
