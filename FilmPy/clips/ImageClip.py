@@ -3,7 +3,6 @@ from PIL import Image
 import numpy
 
 from FilmPy.clips.ClipBase import ClipBase
-from FilmPy.constants import ImageModes
 
 
 class ImageClip(ClipBase):
