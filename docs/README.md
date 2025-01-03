@@ -69,7 +69,7 @@ clip.write_video('output/chameleon_flipped_and_rotated.mp4')
 | ClipBase.dynamic_resize()                            | ClipBase.trim_audio()                                    |
 | Editor.insert(clip, insert_clip)                     | ClipBase.trim_video() & ClipBase.trim()                  |
 | ClipBase.cut_audio()                                 | ClipBase.play()                                          |
-| ClipBase.play_video()                                |                                                          |
+| ClipBase.play_video()                                | ClipBase.stiple()                                        |
 
 ### Expected sometime 
 | Features                                             | Description                                              |
@@ -79,11 +79,14 @@ clip.write_video('output/chameleon_flipped_and_rotated.mp4')
 | CrossFade(Transition)                                | Cross fade between two clips                             |
 | ClipBase.add_subtitles()                             | Add subtitle text to a clip                              |
 | ClipBase.add_subtitle_track()                        | Add a subtitle track to the the clip                     |
-| Nagware                                              ||
-| ClipBase.dynamic_resize()                            ||
-| ClipBase.head_blur() ||
-| Clip Hierarchy HTML page ||
-| ClipBase.subclip() ||
+| Nagware                                              | ClipBase.motion_blur() |
+| ClipBase.dynamic_resize()                            | ClipBase.slide() |
+| ClipBase.head_blur() |ClipBase.scroll() |
+| Clip Hierarchy HTML page | ClipBase.duplicate() |
+| ClipBase.subclip() | ClipBase.typewriter_text() |
+| RecipeClip | BookReviewClip() |
+| ClipBase.freeze(extend_audio=True) | |
+| ChessClip - Board Orientation || 
 
 
 ### Thinking About For Later
