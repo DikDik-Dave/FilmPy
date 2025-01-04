@@ -1046,29 +1046,42 @@ class ClipBase:
         # Return this object to enable method chaining
         return self
 
-    def add_sound(self,
-                        sound_time,
-                        sound_audio_frames=None,
-                        file_path=None):
+    def add_audio(self,
+                  start_time,
+                  audio_frames=None,
+                  file_path=None):
         """
-        Add
-        :param sound_time: Sound time
+        Add sound at a specific time in the clip
+
+        :param start_time: Time, in seconds, to start the audio at
+        :param
         :param file_path: Path to the audio file
         """
+        logger = getLogger(__name__)
+        logger.debug(f'{type(self).__name__}.add_audio(start_time={start_time}, '
+                     f'audio_frames={type(audio_frames)}, file_path={file_path})')
+
+        # If we got audio frames AND a file path, the input is ambiguous, so we will bail out
+        if audio_frames and file_path:
+            logger.error(f'Both audio_frames and file_path supplied. '
+                         f'Please supply one or the other, not both. No work performed.')
+            return self
+
+        # We were given a file path to the audio, so go ahead and load the audio frames
         if file_path:
-            sound_audio_frames = self._read_audio(file_path,
-                                                  audio_channels=self.audio_channels,
-                                                  audio_sample_rate=self.audio_sample_rate)
+            audio_frames = self._read_audio(file_path,
+                                            audio_channels=self.audio_channels,
+                                            audio_sample_rate=self.audio_sample_rate)
 
         # Get the existing audio frames
-        audio_frames = self.get_audio_frames()
+        clip_audio_frames = self.get_audio_frames()
 
         # Insert the audio at the specified time (frame index)
-        audio_frame_index = int(sound_time * self.audio_sample_rate)
-        audio_frames[audio_frame_index:audio_frame_index+sound_audio_frames.shape[0]] = sound_audio_frames
+        audio_frame_index = int(start_time * self.audio_sample_rate)
+        clip_audio_frames[audio_frame_index:audio_frame_index + audio_frames.shape[0]] = audio_frames
 
         # Replace the audio frames with the newly generated audio frames
-        self.set_audio_frames(audio_frames)
+        self.set_audio_frames(clip_audio_frames)
 
         # Return this object to enable method chaining
         return self

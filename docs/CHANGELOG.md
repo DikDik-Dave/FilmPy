@@ -24,7 +24,7 @@
   - Added `ClipBase._read_audio()` - Reads audio from a file.
   - Added `ClipBase.audio_initialize(duration,audio_channels)` - Initialize audio for the clip (replaces existing audio)
   - Added `ClipBase.add_colors(red_added,green_added,blue_added,luminance)` - Perform color addition on the clip
-  - Added `ClipBase.add_sound(sound_time, sound_frames=None, file_path=None)` - Adds the given audio frames at the specific time requested
+  - Added `ClipBase.add_audio(start_time, audio_frames=None, file_path=None)` - Adds the given audio frames at the specific time requested
   - Added `ClipBase.blink()` - Blacks out frames of the video to create a blinking effect
   - Added `ClipBase.invert_colors()` - Invert the colors in the image
   - Added `ClipBase.even_dimensions()` - Trims the height and width as needed so the clip's height and width are even
