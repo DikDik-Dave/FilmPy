@@ -2,6 +2,7 @@ import logging
 import subprocess
 import os
 from logging import getLogger
+from random import randint
 from subprocess import DEVNULL, PIPE
 
 import numpy
@@ -832,6 +833,9 @@ class ClipBase:
 
     @property
     def video_resolution(self) -> str:
+        """
+        video resolution of the clip in the format {width}x{height}
+        """
         if 'resolution' not in self._video:
             raise TypeError(f'{type(self).__name__}.video_resolution is None.')
         return self._video['resolution']
@@ -840,7 +844,6 @@ class ClipBase:
     def include_audio(self):
         """
         Should the audio of this clip be included
-        :return:
         """
         if self._clip['include_audio'] is None:
             raise ValueError(f'{type(self).__name__}.include_audio cannot be None.')
@@ -849,6 +852,90 @@ class ClipBase:
     ###################
     # Private Methods #
     ###################
+    @staticmethod
+    def _stipple_frame(pil_image, threshold:int):
+        """
+        Pass Pillow Image in to allow for a pixel by pixel search and
+		remove considerably whiter pixels based on our algorithm for stippling
+
+        :param pil_image: PIL Image of the frame to be stippled
+        :param threshold: Stipple threshold
+
+        :return stippled_frame: Frame with the stipple effect applied
+        """
+        # Convert the image to gray scale
+        pil_image = pil_image.convert('L')
+
+        # Threshold code
+        # Initialize pixel values
+        pixel_values = []
+        for x in range(pil_image.size[0]):
+            col_values = []
+            for y in range(pil_image.size[1]):
+                col_values.append(255)
+            pixel_values.append(col_values)
+
+        # column search
+        for x in range(pil_image.size[0]):
+            for y in range(pil_image.size[1]):
+
+                if y == 0:
+                    prev_y_pixel = pil_image.getpixel((x, y))
+                    continue
+
+                difference = abs(pil_image.getpixel((x, y)) - prev_y_pixel)
+                prev_y_pixel = pil_image.getpixel((x, y))
+
+                if difference >= threshold:
+                    pixel_values[x][y] = 0
+
+        # row search
+        for y in range(pil_image.size[1]):
+            for x in range(pil_image.size[0]):
+
+                if x == 0:
+                    prev_x_pixel = pil_image.getpixel((x, y))
+                    continue
+
+                difference = abs(pil_image.getpixel((x, y)) - prev_x_pixel)
+                prev_x_pixel = pil_image.getpixel((x, y))
+
+                if difference >= threshold:
+                    pixel_values[x][y] = 0
+
+        length = 2
+        total = length * length * 255
+
+        # Remove points based on surrounding area
+
+        for x in range(length, pil_image.size[0] - length):
+            for y in range(length, pil_image.size[1] - length):
+                if pixel_values[x][y] == 0:
+                    random = randint(1, 10)
+                    pixel_total = 0
+                    for a in range(x - length, x + length):
+                        for b in range(y - length, y + length):
+                            pixel_total += pixel_values[a][b]
+                    # More surrounding black points means greater probability of removal of that point
+                    if (pixel_total > total) and random > 8:
+                        pixel_values[x][y] = 255
+                    elif (pixel_total > int(total * 3 / 4)) and random > 6:
+                        pixel_values[x][y] = 255
+                    elif (pixel_total > int(total / 2)) and random > 4:
+                        pixel_values[x][y] = 255
+                    elif (pixel_total > int(total / 4)) and random > 2:
+                        pixel_values[x][y] = 255
+                    elif (pixel_total >= 0) and (random > 1):
+                        pixel_values[x][y] = 255
+
+        for x in range(pil_image.size[0]):
+            for y in range(pil_image.size[1]):
+                pil_image.putpixel((x, y), pixel_values[x][y])
+
+        # Convert image to rgb
+        pil_image = pil_image.convert("RGB")
+
+        return pil_image
 
     def _read_audio(self,
                     file_path=None,
@@ -2255,6 +2342,33 @@ class ClipBase:
         # Return this object to enable method chaining
         return self
 
+
+    def stipple(self, threshold:int=25):
+        """
+        Stipple the video footage
+
+        Affects: Video
+
+        :return self: Return this object itself. This enables method chaining.
+        """
+        logger = getLogger(__name__)
+        logger.debug(f'{type(self).__name__}.stipple(threshold={threshold})')
+
+        video_frames = self.get_video_frames()
+        logger.debug(f'{len(video_frames)} video frames pre effect')
+
+        stippled_frames = []
+        for frame in video_frames:
+            frame_image = Image.fromarray(frame)
+            stippled_frame = np.array(self._stipple_frame(frame_image, threshold))
+
+            stippled_frames.append(stippled_frame.astype('uint8'))
+
+        logger.debug(f'{len(stippled_frames)} video frames post effect')
+        self.set_video_frames(stippled_frames)
+
+        # Return this object to enable method
+        return self
 
     def trim(self, exclude_before=None, exclude_after=None):
         """
