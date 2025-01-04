@@ -1018,11 +1018,13 @@ class ClipBase:
         """
         Increase or decrease each color channel and the images luminosity
 
+        Affects: Video
+
         :param red_addend: Addend for the red channel, defaults to 0 (no change)
         :param green_addend: Addend for the green channel, defaults to 0 (no change)
         :param blue_addend: Addend for blue channel, defaults to 0 (no change)
         :param luminance: Addend for luminance
-        :return:
+        :return self: Enables method chaining
         """
         logger = getLogger(__name__)
         logger.debug(f"{type(self).__name__}.add_colors(red_addend={red_addend}, green_added={green_addend}, "
@@ -1051,12 +1053,17 @@ class ClipBase:
                   audio_frames=None,
                   file_path=None):
         """
-        Add sound at a specific time in the clip
+        Add sound at a specific time in the clip. This will replace any existing sound that existed in that time frame.
+
+        Affects: Audio
 
         :param start_time: Time, in seconds, to start the audio at
-        :param
+        :param audio_frames: Audio frames that comprise the audio
         :param file_path: Path to the audio file
+
+        :return self: Enables method chaining
         """
+        # Debug log the call itself
         logger = getLogger(__name__)
         logger.debug(f'{type(self).__name__}.add_audio(start_time={start_time}, '
                      f'audio_frames={type(audio_frames)}, file_path={file_path})')
@@ -1091,6 +1098,8 @@ class ClipBase:
         """
         Apply a fade in to the audio track
 
+        Affects: Audio
+
         :param duration: Duration, in seconds, that the fade in will last for
         :return self: This object, to allow for method chaining
         """
@@ -1119,8 +1128,9 @@ class ClipBase:
         """
         Apply a gradual decrease to the level of the audio signal
 
-        :param duration: Duration, in seconds, that the fade in will last for
+        Affects: Audio
 
+        :param duration: Duration, in seconds, that the fade in will last for
         :return self: This object, to allow for method chaining
         """
 
@@ -1143,10 +1153,17 @@ class ClipBase:
         # Allow for method chaining
         return self
 
-    def audio_initialize(self, duration, audio_channels):
+    def audio_initialize(self, duration:float, audio_channels:int) -> object:
         """
-        Initialize audio
+        Initialize audio for this clip
+
+        Affects: Audio
+
+        :param audio_channels:  Number of audio channels to initialize
+        :param duration: Duration of audio to initialize
+        :return self: Enables method chaining
         """
+        # Debug log the call itself
         logger = getLogger(__name__)
         logger.debug(f'{type(self).__name__}.audio_initialize(duration={duration},audio_channels={audio_channels})')
 
@@ -1161,6 +1178,7 @@ class ClipBase:
                         .reshape(number_frames, audio_channels).astype('int16'))
         self.set_audio_frames(audio_frames)
 
+        # Enables method chaining
         return self
 
     def audio_peak_normalize(self):
@@ -1180,9 +1198,12 @@ class ClipBase:
     def audio_stereo_volume(self, left_multiplier:float, right_multiplier:float):
         """
         Multiplies the volume of each track independently for stereo audio
+
+        Affects: Audio
+
         :param left_multiplier: Left track multiplier
         :param right_multiplier: Right track multiplier
-        :return:
+        :return self: Enables method chaining
         """
         if not self.has_audio:
             raise AttributeError(f"{type(self).__name__} does not have associated audio.")
@@ -1241,16 +1262,19 @@ class ClipBase:
               start_frame=None,
               start_frame_time=None,
               end_frame=None,
-              end_frame_time=None):
+              end_frame_time=None) -> object:
         """
         Make the footage blink. This is done, by replacing the 'blinking frames' with blank frames
+
+        Affects: Video
 
         :param duration_on: Duration in seconds, that the clip will blink for
         :param duration_off: Duration in seconds, that the clip will not blink for
         :param start_frame: Frame index of when the overall blinking should start
         :param start_frame_time: Time in seconds of the frame when the overall blinking should start
         :param end_frame: Frame index of when the overall blinking should end
-        "param end_frame_time: Time in seconds of the frame when the overall blinking should end
+        :param end_frame_time: Time in seconds of the frame when the overall blinking should end
+        :return self: This object (allows for method chaining)
         """
         logger = getLogger(__name__)
         logger.debug(f'{type(self).__name__}.blink(duration_on={duration_on},duration_off={duration_off}, '
@@ -1320,7 +1344,7 @@ class ClipBase:
                border_right:int=0,
                border_top:int=0,
                border_bottom:int=0,
-               fill_color=(255,255,0)):
+               fill_color=(255,255,0)) -> object:
         """
         Add a border (could be thought of as a margin or frame as well).
         Basically add X pixels around the existing image in the requested color.
@@ -1331,6 +1355,7 @@ class ClipBase:
         :param border_top    : Top border to create around the frame (will be added to border if specified)
         :param border_bottom : Bottom border to create around the frame (will be added to border if specified)
         :param fill_color    : Color to use for the border
+        :return self: This object (allows for method chaining)
         """
         # Determine the border sizes
         border_left = border + border_left
@@ -1363,16 +1388,20 @@ class ClipBase:
         # Enable method chaining
         return self
 
-    def pixelate(self, pixel_size=32):
+    def pixelate(self, pixel_size=32) -> object:
         """
-        Convert the footage to game console footage
+        Convert the footage to a pixelated representation
+
+        Affects: Video
 
         :param pixel_size: What video game console should the footage resemble
         :return self: Enables method chaining
         """
+        # Debug log message for the call itself
         logger = getLogger()
-        logger.debug(f"{type(self).__name__}.consolize(pixel_size={pixel_size})")
+        logger.debug(f"{type(self).__name__}.pixelate(pixel_size={pixel_size})")
 
+        # Pixelate the frames
         altered_frames = []
         for frame in self.get_video_frames():
             image = Image.fromarray(frame)
@@ -1389,7 +1418,6 @@ class ClipBase:
         # Enable method chaining
         return self
 
-
     def crop(self,
              top_left_x:int=0,
              top_left_y:int=0,
@@ -1400,6 +1428,21 @@ class ClipBase:
              height:int=None,
              width:int=None
              ):
+        """
+        Crop the video given as requested
+
+        Affects: Video
+
+        :param top_left_x:
+        :param top_left_y:
+        :param bottom_right_x:
+        :param bottom_right_y:
+        :param center_x:
+        :param center_y:
+        :param height:
+        :param width:
+        :return self: This object (allows for method chaining)
+        """
         # Get a logger to, well uhm, log stuff
         logger = getLogger(__name__)
 
@@ -1449,20 +1492,21 @@ class ClipBase:
 
     def cut(self, start_time=None, end_time=None):
         """
-        Cuts the requested time out of the clip.
-        Will reset
+        Cuts the requested footage from [start time,end time) out of the clip.
+
+        Affects: Audio, Video
 
         :param start_time: frames earlier than this time will be excluded from the clip
         :param end_time: frames later than this time will be excluded from the clip
         :return self: Enables method chaining
         """
         logger = getLogger(__name__)
+        logger.debug(f"{type(self).__name__}.cut(start_time={start_time}, end_time={end_time})")
 
-        # Let the user no that they called trim without purpose
-        logger.debug(f"{type(self).__name__}.trim(start_time={start_time}, end_time={end_time})")
+        # Let the user no that they called cut without purpose
         if not start_time and not end_time:
             logger.warning(f"Nothing to cut")
-
+            return self
 
         # Alter the video frames accordingly
         if self.has_video:
@@ -1507,13 +1551,13 @@ class ClipBase:
         """
         Divides each color channel and the image's luminosity
 
+        Affects: Video
+
         :param red_divisor: Multiplier for the red channel
         :param green_divisor: Multiplier for the green channel
         :param blue_divisor: Multiplier for blue channel
         :param luminance: Multiplier for luminance
-
         :raises ValueError: A divisor with the value of 0 was supplied as an input
-
         :return self: Enables method chaining
         """
         logger = getLogger(__name__)
@@ -1627,12 +1671,14 @@ class ClipBase:
                time:float,
                duration:float,
                replace_frames=False,
-               ):
+               ) -> object:
         """
         Freeze the clip at `time` for `duration` seconds
         :param time: Point in time, in seconds, that the clip should be frozen at
         :param duration: Duration, in seconds, that the clip should be frozen for
         :param replace_frames: Should the frozen frames replace footage or be added to the footage
+
+        :return self: Enables method chaining
         """
         # Debug logging for the call itself
         logger = getLogger(__name__)
