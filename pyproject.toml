@@ -1,3 +1,27 @@
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "FilmPy"
+version = "25.1.0
+authors = [
+  { name="David Alan Gardener" },
+]
+description = "A library and command line interface for pythonic audio/video editing"
+readme = "docs/README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "http://filmpy.org"
+Documentation = "http://filmpy.org"
+Repository = "https://github.com/DikDik-Dave/FilmPy"
+Issues = "https://github.com/DikDik-Dave/FilmPy/issues"
+
+[project.scripts]
+filmpy = "FilmPy.cli:main"
