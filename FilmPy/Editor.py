@@ -1,6 +1,6 @@
 import os
 
-from logging import getLogger, INFO, StreamHandler, FileHandler, Formatter
+from logging import getLogger, getLevelNamesMapping, INFO, StreamHandler, FileHandler, Formatter
 
 from FilmPy.clips import ChessClip, ColorClip, CompositeClip, Clip, ImageClip, TextClip
 from FilmPy.Sequence import Sequence
@@ -205,6 +205,8 @@ class Editor:
         # We received a single integer argument, treat it as the log_level
         if (len(args) == 1) and isinstance(args[0], int):
             log_level = args[0]
+        elif (len(args) == 1) and isinstance(log_level, str):
+            log_level = getLevelNamesMapping()[str.upper(args[0])]
 
         # Get the root level logger for FilmPy
         logger = getLogger(__name__.split('.')[0])
