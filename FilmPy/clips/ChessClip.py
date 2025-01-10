@@ -10,22 +10,41 @@ from wand.image import Image as WandImage
 from wand.color import Color as WandColor
 
 from .ClipBase import ClipBase
+from ..constants import Chess
+
 
 class ChessClip(ClipBase):
     """
     Create a chess clip from a pgn file
     """
-    def _create_move_frame(self, game, board, move):
+    def _create_move_frame(self, game, board, move, orientation):
         """
         Create a Frame that corresponding to the move
+
+        :param game: PGN game object (player names, rating, etc.)
+        :param board: Game board object - Contains the current state of the chess game
+        :param move: PGN move text
+        :param orientation: String (white|black) of the board orientation
+
+        :return board: board with the new move applied
+        :return frame: video frame corresponding to this move
         """
         # Split the move string
         if move:
             move_number, san_move, move_dict = str(move).split(' ', 2)
             board.push_san(san_move)
 
+        chess_lib_orientation = False
+        top_player = 'White'
+        bottom_player = 'Black'
+        if orientation == Chess.WHITE.value:
+            chess_lib_orientation = True
+            top_player = 'Black'
+            bottom_player = 'White'
+
+
         # Convert the board to SVG
-        board_svg = chess.svg.board(board)
+        board_svg = chess.svg.board(board, orientation=chess_lib_orientation)
 
         # Convert the svg to a png to a numpy array
         wi = WandImage(blob=board_svg.encode(),
@@ -56,14 +75,14 @@ class ChessClip(ClipBase):
         draw = PILImageDraw.Draw(pil_image)
 
         # Add the Player name and rating for Black
-        text = f"{game.tag_pairs['Black']} ({game.tag_pairs['BlackElo']})"
+        text = f"{game.tag_pairs[top_player]} ({game.tag_pairs[f'{top_player}Elo']})"
         draw.text(fill=(255, 255, 255, 255),
                   font=pil_font,
                   xy=(0, 370),
                   text=text)
 
         # Add the Player name and rating for White
-        text = f"{game.tag_pairs['White']} ({game.tag_pairs['WhiteElo']})"
+        text = f"{game.tag_pairs[bottom_player]} ({game.tag_pairs[f'{bottom_player}Elo']})"
         draw.text(fill=(255, 255, 255, 255),
                   font=pil_font,
                   xy=(0, 1500),
@@ -106,6 +125,7 @@ class ChessClip(ClipBase):
 
 
     def __init__(self,
+                 chess_board_orientation=Chess.WHITE.value,
                  chess_move_duration=3,
                  file_path=None,
                  clip_size=(1080, 1920),
@@ -123,6 +143,9 @@ class ChessClip(ClipBase):
             raise ValueError(f'{type(self).__name__}.init(file_path=None) is invalid. '
                              f'Provide a valid path to a pgn file')
 
+        if chess_board_orientation not in Chess:
+            raise ValueError(f'{type(self).__name__}'
+                             f'.init(chess_board_orientation={chess_board_orientation}) is invalid. ')
 
         # Initialize the ClipBase
         super().__init__(clip_height=clip_size[1],
@@ -149,7 +172,7 @@ class ChessClip(ClipBase):
         frames = []
 
         # Create a chess board
-        board, move_frame = self._create_move_frame(game, chess.Board(), None)
+        board, move_frame = self._create_move_frame(game, chess.Board(), None, chess_board_orientation)
 
         # Add the frames for the starting position
         for _ in range(self.fps * chess_move_duration):
@@ -162,8 +185,8 @@ class ChessClip(ClipBase):
 
             move_time = float(move * self.fps * chess_move_duration / self.fps)
             move_sound_file = self._get_move_sound_file(move_text)
-            self.add_sound(move_time, file_path=move_sound_file)
-            board, move_frame = self._create_move_frame(game, board, move_text)
+            self.add_audio(move_time, file_path=move_sound_file)
+            board, move_frame = self._create_move_frame(game, board, move_text, chess_board_orientation)
 
             # Create all the necessary frames for this move
             for _ in range(self.fps * chess_move_duration):
