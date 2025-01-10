@@ -1,0 +1,21 @@
+<!-- FilmPy is the root element for these documents -->
+<!ELEMENT FilmPy (Clip | ColorClip | ImageClip | GridClip | TextClip)* >
+
+<!-- Maps to a FilmPy.Clip object -->
+<!ELEMENT Clip (border | write-video)* >
+
+<!-- Maps to a FilmPy.Clip object -->
+<!ELEMENT ColorClip (border | write-video)* >
+
+<!-- Maps to a FilmPy.ImageClip -->
+<!ELEMENT ImageClip (border | write-video)* >
+
+<!-- Maps to a GridClip -->
+<!ELEMENT GridClip (border | write-video)* >
+
+<!-- Maps to a FilmPy.TextClip object -->
+<!ELEMENT TextClip (border | write-video)* >
+
+<!-- All elements that map to methods should be empty -->
+<!ELEMENT border EMPTY>
+<!ELEMENT write-video EMPTY>
