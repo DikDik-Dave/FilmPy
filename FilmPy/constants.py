@@ -492,6 +492,62 @@ PIXEL_FORMATS = {
                 'hardware_accelerated': False,
                 'nb_components': 3,
                 'bits_per_pixel': 48},
+    'yuv420p9be': {'bitstream': False,
+                'input': True,
+                'output': True,
+                'paletted': False,
+                'hardware_accelerated': False,
+                'nb_components': 3,
+                'bits_per_pixel': 13},
+    'yuv420p9le': {'bitstream': False,
+                'input': True,
+                'output': True,
+                'paletted': False,
+                'hardware_accelerated': False,
+                'nb_components': 3,
+                'bits_per_pixel': 13},
+    'yuv420p10be': {'bitstream': False,
+                   'input': True,
+                   'output': True,
+                   'paletted': False,
+                   'hardware_accelerated': False,
+                   'nb_components': 3,
+                   'bits_per_pixel': 15},
+    'yuv420p10le': {'bitstream': False,
+                   'input': True,
+                   'output': True,
+                   'paletted': False,
+                   'hardware_accelerated': False,
+                   'nb_components': 3,
+                   'bits_per_pixel': 15},
+    'yuv422p10be': {'bitstream': False,
+                    'input': True,
+                    'output': True,
+                    'paletted': False,
+                    'hardware_accelerated': False,
+                    'nb_components': 3,
+                    'bits_per_pixel': 20},
+    'yuv422p10le': {'bitstream': False,
+                    'input': True,
+                    'output': True,
+                    'paletted': False,
+                    'hardware_accelerated': False,
+                    'nb_components': 3,
+                    'bits_per_pixel': 20},
+    'yuv444p9be': {'bitstream': False,
+                    'input': True,
+                    'output': True,
+                    'paletted': False,
+                    'hardware_accelerated': False,
+                    'nb_components': 3,
+                    'bits_per_pixel': 27},
+    'yuv444p9le': {'bitstream': False,
+                    'input': True,
+                    'output': True,
+                    'paletted': False,
+                    'hardware_accelerated': False,
+                    'nb_components': 3,
+                    'bits_per_pixel': 27},
 }
 
 
@@ -505,14 +561,6 @@ I.... = Supported Input  format for conversion
 ....B = Bitstream format
 FLAGS NAME            NB_COMPONENTS BITS_PER_PIXEL
 -----
-IO... yuv420p9be             3            13
-IO... yuv420p9le             3            13
-IO... yuv420p10be            3            15
-IO... yuv420p10le            3            15
-IO... yuv422p10be            3            20
-IO... yuv422p10le            3            20
-IO... yuv444p9be             3            27
-IO... yuv444p9le             3            27
 IO... yuv444p10be            3            30
 IO... yuv444p10le            3            30
 IO... yuv422p9be             3            18
