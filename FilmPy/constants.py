@@ -669,11 +669,9 @@ class Behavior(Enum):
     LOOP_FRAMES   = 1         # Loop over the existing material as needed
     PAD           = 2         # Add blank frames as needed
 
-
 class Chess(Enum):
     BLACK = 'black'
     WHITE = 'white'
-
 
 # PIL Mapping Enum for Resampling, used by resize
 class Resampling(Enum):
