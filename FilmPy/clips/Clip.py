@@ -1179,6 +1179,105 @@ class Clip:
         # Return this object to enable method chaining
         return self
 
+    def add_pepe(self, duration, position, start_time, size):
+        """
+        Add a Pepe the Frog with a transparent background to the clip.
+        Requires, that the clip be in RGBA
+
+        :param duration: Duration, in seconds, that Pepe should be displayed for
+        :param position: (x,y) coordinates of the upper left corner of pepe
+        :param start_time: Start time, in seconds that Pepe should start to be displayed at
+        :param size: Size of Pepe
+
+        :return self: Enables method chaining
+        """
+        logger = getLogger(__name__)
+        logger.debug(f'{type(self).__name__}.add_pepe(position={position}, duration={duration}, '
+                     f'start_time={start_time}, size={size})')
+
+        if self.pixel_format != 'rgba':
+            self.set_pixel_format('rgba')
+
+        # If we got audio frames AND a file path, the input is ambiguous, so we will bail out
+        image = Image.open('./assets/images/pepe.png')
+        image = image.convert('RGBA')
+        image = image.resize(size)
+        image = np.array(image).astype('uint8')
+
+        # Add the image to the requested frames
+        altered_frames = []
+        frame_index = -1
+        start_frame_index = int(start_time * self.fps)
+        end_frame_index = start_frame_index + int(duration * self.fps)
+        for video_frame in self.get_video_frames():
+            # Update the frame index
+            frame_index += 1
+
+            # The frame is outside the range of frames we need to process
+            if (frame_index < start_frame_index) or (frame_index >= end_frame_index):
+                altered_frames.append(video_frame)
+                continue
+
+            # Add the image to the frame
+            video_frame[position[0]:position[0]+image.shape[0],position[1]:position[1]+image.shape[1]] = image
+            altered_frames.append(video_frame)
+
+        # Set the video frames
+        self.set_video_frames(altered_frames)
+
+        # Return this object to enable method chaining
+        return self
+
+    def replace_video(self,
+                  start_time,
+                  duration,
+                  size=None,
+                  video_frames=None,
+                  file_path=None):
+        """
+        Replace the video at a specific time in the clip.
+        This will replace any existing video frames that existed in that time frame.
+
+        Affects: Video
+
+        :param start_time: Time, in seconds, to start the audio at
+        :param video_frames: Audio frames that comprise the video frames to add
+        :param file_path: Path to the video file
+
+        :return self: Enables method chaining
+        """
+        # Debug log the call itself
+        logger = getLogger(__name__)
+        logger.debug(f'{type(self).__name__}.add_video(start_time={start_time}, duration={duration}, '
+                     f'video_frames={type(video_frames)}, file_path={file_path})')
+
+        # If we got audio frames AND a file path, the input is ambiguous, so we will bail out
+        if video_frames and file_path:
+            logger.error(f'Both video_frames and file_path supplied. '
+                         f'Please supply one or the other, not both. No work performed.')
+            return self
+
+        # We were given a file path to the audio, so go ahead and load the audio frames
+        if file_path:
+            image = Image.open(file_path)
+            if size:
+                image = image.resize(size)
+            video_frame = np.array(image)
+            number_frames = int(self.fps * duration)
+            video_frames = [video_frame for _ in range(number_frames)]
+
+        # Get the existing audio frames
+        clip_video_frames = self.get_video_frames()
+
+        # Insert the audio at the specified time (frame index)
+        video_frame_index = int(start_time * self.fps)
+        clip_video_frames[video_frame_index:video_frame_index+len(video_frames)] = video_frames
+
+        # Replace the audio frames with the newly generated audio frames
+        self.set_video_frames(clip_video_frames)
+
+        # Return this object to enable method chaining
+        return self
 
     def audio_fade_in(self, duration):
         """
