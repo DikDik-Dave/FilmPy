@@ -161,6 +161,8 @@ class ClipBase:
 
         :raises ValueError: When invalid clip_pixel_format received
         """
+        # TODO: Raise a ValueError if we have no valid data
+        # print(file_path, video_frames, audio_frames)
         # Get a logger
         logger = getLogger(__name__)
         self._all_attributes = ('_audio','_clip','_environment','_mask','_file')
@@ -1355,8 +1357,17 @@ class ClipBase:
         :param border_top    : Top border to create around the frame (will be added to border if specified)
         :param border_bottom : Bottom border to create around the frame (will be added to border if specified)
         :param fill_color    : Color to use for the border
-        :return self: This object (allows for method chaining)
+
+        :return self         : This object (allows for method chaining)
         """
+
+        # Cast values to integer
+        border = int(border)
+        border_left = int(border_left)
+        border_right = int(border_right)
+        border_top = int(border_top)
+        border_bottom = int(border_bottom)
+
         # Determine the border sizes
         border_left = border + border_left
         border_right = border + border_right
