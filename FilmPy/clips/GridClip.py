@@ -1,9 +1,9 @@
-from FilmPy.clips.ClipBase import ClipBase
+from .Clip import Clip
 from FilmPy.constants import PIXEL_FORMATS
 import numpy
 
 
-class GridClip(ClipBase):
+class GridClip(Clip):
     def __init__(self,
                  video_end_time=300, # TODO: remove the need to have this set, this is a hack to make it work
                                      # TODO: There is no 'video' for a composite clip so some upstream clip property is wrong

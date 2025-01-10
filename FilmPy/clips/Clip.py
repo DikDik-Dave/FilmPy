@@ -13,7 +13,7 @@ import numpy
 from FilmPy.constants import *
 import numpy as np
 
-class ClipBase:
+class Clip:
     """
     Base class for all clips.
     """
@@ -210,8 +210,6 @@ class ClipBase:
                         'start_time': audio_start_time,
                         'time_base': audio_time_base,
                         }
-        if audio_sample_rate:
-            self.audio_sample_rate = audio_sample_rate
 
         # Clip specific attributes
         self._clip = {
@@ -339,12 +337,12 @@ class ClipBase:
 
         # If we already have audio sample rate, just return it
         if 'sample_rate' in self._audio:
-            return self._audio['sample_rate']
+            return int(self._audio['sample_rate'])
 
         # Audio Sample Rate was not set, fall back to the default sample rate
         self.audio_sample_rate = DEFAULT_SAMPLE_RATE
 
-        return self._audio['sample_rate']
+        return int(self._audio['sample_rate'])
 
 
     @audio_sample_rate.setter

@@ -1,12 +1,9 @@
 from logging import getLogger
-
-from FilmPy.clips.ClipBase import ClipBase
+from .Clip import Clip
+from ..constants import PIXEL_FORMATS
 import numpy
 
-from FilmPy.constants import PIXEL_FORMATS
-
-
-class CompositeClip(ClipBase):
+class CompositeClip(Clip):
     """
     CompositeClip is a clip that is created from a composition of other clips
     """

@@ -9,11 +9,11 @@ from PIL import Image as PILImage, ImageFont as PILImageFont, ImageDraw as PILIm
 from wand.image import Image as WandImage
 from wand.color import Color as WandColor
 
-from .ClipBase import ClipBase
+from .Clip import Clip
 from ..constants import Chess
 
 
-class ChessClip(ClipBase):
+class ChessClip(Clip):
     """
     Create a chess clip from a pgn file
     """

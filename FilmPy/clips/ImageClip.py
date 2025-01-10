@@ -2,10 +2,9 @@ from pydoc import classname
 from PIL import Image
 import numpy
 
-from FilmPy.clips.ClipBase import ClipBase
+from .Clip import Clip
 
-
-class ImageClip(ClipBase):
+class ImageClip(Clip):
     """
     An image clip is a clip comprised of a single image
     """
