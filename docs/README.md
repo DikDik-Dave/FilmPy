@@ -53,7 +53,7 @@ clip.write_video('output/chameleon_flipped_and_rotated.mp4')
 | Save a single image from a video file                | Save clips as video files                                       |
 | Rotate clips, images, and sequences of clips         | Save a single image from a video file                           |
 | Cut footage out of a clip                            | Trim the beginning or end of a clip                             |
-| Play the video associated with the clip              |  |
+| Play the video associated with the clip              | Produce a stippled image                                        |
 
 ### Expected in version 25.1.0
 | Features                                             | Features                                                 |
@@ -69,7 +69,7 @@ clip.write_video('output/chameleon_flipped_and_rotated.mp4')
 | ClipBase.dynamic_resize()                            | ClipBase.trim_audio()                                    |
 | Editor.insert(clip, insert_clip)                     | ClipBase.trim_video() & ClipBase.trim()                  |
 | ClipBase.cut_audio()                                 | ClipBase.play()                                          |
-| ClipBase.play_video()                                | ClipBase.stiple()                                        |
+| ClipBase.play_video()                                |                                         |
 
 ### Expected sometime 
 | Features                                             | Description                                              |
