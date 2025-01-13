@@ -40,7 +40,7 @@ clip.write_video('output/chameleon_flipped_and_rotated.mp4')
 ### Using FilmPy you are able to do the following
 | Features                                                                                           | Features                                |
 | :--------                                                                                          | :---------------------                  |
-| [Add borders / margin to a clip](http://filmpy.org/manual/tutorials/adding-borders-to-a-clip.html) | Do color division on a clip             |
+| [Add borders / margin to a clip](http://filmpy.org/tutorials/adding-borders-to-a-clip.html)        | Do color division on a clip             |
 | Invert the colors of a clip                                                                        | Do color multipication on a clip        |
 | Decrease the audio volume of a clip                  | Remove the audio for a track [NOT DONE] |
 | Increase the audio volume of a clip                  | Composite video clips                   |
