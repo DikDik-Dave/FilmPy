@@ -75,6 +75,7 @@ class Clip:
                  video_end_time=None,
                  video_fps=None,
                  video_frames=None,
+                 video_get_frame=None,
                  video_level=None,
                  video_nal_length_size=None,
                  video_nb_frames=None,
@@ -145,6 +146,7 @@ class Clip:
         :param video_end_time:
         :param video_fps:
         :param video_frames:
+        :param video_get_frame: function to be used to generate video frames
         :param video_level:
         :param video_nal_length_size:
         :param video_nb_frames:
@@ -247,6 +249,7 @@ class Clip:
                             'duration_ts': video_duration_ts,
                             'end_time': video_end_time,                      # Duration of the video
                             'fps': video_fps,                                # FPS for the underlying video
+                            'get_frame': video_get_frame,
                             'frames': video_frames,                          # Frames for the underlying video
                             'frames_initialized':  video_frames_initialized, # Do we have the frames already?
                             'has_b_frames': video_has_b_frames,
@@ -2135,8 +2138,11 @@ class Clip:
 
             return new_frames
 
-        # No frames yet exist, default to using the video frames we have
-        video_frames = self.get_video_frames_from_file(pixel_format)
+        # No frames yet exist, and we were given a get_video_frame function
+        if self._video['get_frame']:
+            video_frames = self.get_video_frames_from_function()
+        else:
+            video_frames = self.get_video_frames_from_file(pixel_format)
 
         # Determine how many frames we need
         frames_needed = self.end_frame - self.start_frame
@@ -2178,6 +2184,29 @@ class Clip:
 
         # Return the frames
         return self._video['frames']
+
+    def get_video_frames_from_function(self):
+        """
+        Get video frames for this clip from the get_video_frame function supplied
+        :return video_frames: Array of frame data
+        """
+        # Debug message that we called this function
+        logger = getLogger(__name__)
+        logger.debug(f'{type(self).__name__}.get_video_frames_from_function()')
+
+        # Generate the frames for the clip
+        video_frames = []
+        video_get_frame = self._video['get_frame']
+        for frame_index in range(self.end_frame):
+            frame_time = frame_index / self.fps
+            frame, frame_size = video_get_frame(frame_index, frame_time)
+            video_frames.append(frame)
+
+        logger.debug(f'{len(video_frames)} frames generated.')
+
+        # Return the newly created video frames
+        return video_frames
+
 
     def get_video_frames_from_file(self, pixel_format=None):
         """
