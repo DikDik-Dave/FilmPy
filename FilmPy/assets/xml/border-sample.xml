@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<FilmPy>
+    <Clip file_path="./assets/videos/chaplin.mp4">
+        <border border="10" />
+        <write_video file_path="output/chaplin.border.cli.mp4" />
+    </Clip>
+</FilmPy>
