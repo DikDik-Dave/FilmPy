@@ -1,17 +1,16 @@
-import subprocess
-import os
-from random import randint
-from subprocess import DEVNULL, PIPE
-from logging import getLogger
-from ffmpeg import FFmpeg
-from PIL import Image, ImageFilter
-
 import json
+import os
 import numpy
-
+import numpy as np
+import subprocess
 
 from FilmPy.constants import *
-import numpy as np
+from logging import getLogger
+from PIL import Image, ImageFilter
+from random import randint
+from subprocess import DEVNULL, PIPE
+from ffmpeg import FFmpeg
+
 
 class Clip:
     """
@@ -388,27 +387,40 @@ class Clip:
         if 'FFMPEG_BINARY' in self._environment:
             return self._environment['FFMPEG_BINARY']
 
-        return FFMPEG_BINARY
+        return BINARY_FFMPEG
 
     @property
-    def ffprobe_binary(self):
+    def binary_ffprobe(self):
         """
         Path to the ffprobe binary to use
         """
-        if 'FFPROBE_BINARY' in self._environment:
-            return self._environment['FFPROBE_BINARY']
+        if 'BINARY_FFPROBE' in self._environment:
+            return self._environment['BINARY_FFPROBE']
 
-        return FFPROBE_BINARY
+        return BINARY_FFPROBE
 
     @property
-    def ffplay_binary(self):
+    def binary_ffplay(self):
         """
         Path to the ffprobe binary to use
         """
-        if 'FFPLAY_BINARY' in self._environment:
-            return self._environment['FFPLAY_BINARY']
+        if 'BINARY_FFPLAY' in self._environment:
+            return self._environment['BINARY_FFPLAY']
 
-        return FFPLAY_BINARY
+        return BINARY_FFPLAY
+
+    @property
+    def binary_stockfish(self):
+        """
+        Path to the Stockfish Binary
+        :return:
+        """
+        if 'BINARY_STOCKFISH' in self._environment:
+            return self._environment['BINARY_STOCKFISH']
+
+        raise ValueError('BINARY_STOCKFISH')
+
+
 
     @property
     def default_frame_rate(self):
@@ -896,7 +908,7 @@ class Clip:
                     keyword_arguments[new_key] = value
 
         # Call ffmpeg to get additional information about the file
-        ffmpeg_info_command = [FFMPEG_BINARY, "-hide_banner", "-i", video_path]
+        ffmpeg_info_command = [BINARY_FFMPEG, "-hide_banner", "-i", video_path]
         logger.debug(f'Calling ffmpeg "{' '.join(ffmpeg_info_command)}"')
         completed_process = subprocess.run(ffmpeg_info_command, capture_output=True)
         for line in completed_process.stderr.splitlines()[1:]:
@@ -928,7 +940,7 @@ class Clip:
             return keyword_arguments
 
         # Get the number of frames for the video
-        ffprobe_command = [FFPROBE_BINARY,
+        ffprobe_command = [BINARY_FFPROBE,
                            '-v', 'error',
                            '-select_streams', 'v:0',
                            '-count_frames',
@@ -965,6 +977,8 @@ class Clip:
             pixel_values.append(col_values)
 
         # column search
+        prev_y_pixel = 0
+        prev_x_pixel = 0
         for x in range(pil_image.size[0]):
             for y in range(pil_image.size[1]):
 
@@ -1158,7 +1172,7 @@ class Clip:
                      f'audio_frames={type(audio_frames)}, file_path={file_path})')
 
         # If we got audio frames AND a file path, the input is ambiguous, so we will bail out
-        if audio_frames and file_path:
+        if (len(audio_frames) > 0) and file_path:
             logger.error(f'Both audio_frames and file_path supplied. '
                          f'Please supply one or the other, not both. No work performed.')
             return self
@@ -2433,8 +2447,8 @@ class Clip:
         # Get audio frames
         audio_data = self.get_audio_frames()
 
-        ffplay_command = [FFPLAY_BINARY,
-                          '-loglevel','error',
+        ffplay_command = [BINARY_FFPLAY,
+                          '-loglevel', ffplay_log_level,
                           '-autoexit',
                           '-nodisp',
                           '-f','s16le',

@@ -9,9 +9,9 @@ AUDIO_CODECS = {
 ENVIRONMENT_FILE = ".filmpy.env"
 FONT_EXTENSIONS = ['fon','ttf']                             # Standard extensions for a font file
 
-FFMPEG_BINARY = "ffmpeg.exe"
-FFPROBE_BINARY = 'ffprobe.exe'
-FFPLAY_BINARY = 'ffplay.exe'
+BINARY_FFMPEG = "ffmpeg.exe"
+BINARY_FFPROBE = 'ffprobe.exe'
+BINARY_FFPLAY = 'ffplay.exe'
 
 DEFAULT_FRAME_RATE  = 30
 DEFAULT_SAMPLE_RATE = 44100
